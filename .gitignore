@@ -143,6 +143,12 @@ sandbox/
 #JetBrains
 .idea/
 
+#VSCode
+.vscode/
+
 # Data Directory
 data/*
 !data/README.md
+
+experiments/experiment1_input_analysis/image_based_drift/experiment/*
+!experiments/experiment1_input_analysis/image_based_drift/experiment/*.py

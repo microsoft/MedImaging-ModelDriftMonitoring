@@ -127,3 +127,22 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+# AML temp files
+.amltmp
+
+# AML jupyter checkpoints
+.ipynb_aml_checkpoints/
+
+# Sandbox Code
+sandbox/
+
+#AzureML
+.azureml/
+
+#JetBrains
+.idea/
+
+# Data Directory
+data/*
+!data/README.md

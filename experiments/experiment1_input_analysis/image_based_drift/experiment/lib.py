@@ -96,7 +96,6 @@ class ChestXrayDataset(Dataset):
 
         # Read image
         image_path = self.image_paths[index]
-        start = time.process_time()
         image_data = Image.open(image_path).convert("RGB")
         # if os.path.exists(image_path):
         # image_data = cv2.cvtColor(cv2.imread(image_path).astype('uint8'), cv2.COLOR_BGR2RGB)

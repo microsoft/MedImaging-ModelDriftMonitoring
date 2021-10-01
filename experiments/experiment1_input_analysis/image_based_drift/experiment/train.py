@@ -4,12 +4,11 @@ import pytorch_lightning as pl
 import subprocess
 import torch
 from model import VAE
-from pytorch_lightning.callbacks import LearningRateMonitor, GPUStatsMonitor
+from pytorch_lightning.callbacks import LearningRateMonitor
 from pytorch_lightning.callbacks.model_checkpoint import ModelCheckpoint
 from pytorch_lightning.loggers import MLFlowLogger
 
 from lib import IOMonitor
-from metrics import ImageReconLogger
 
 print("--- ENV VARIABLES ---")
 for k, v in sorted(os.environ.items()):
@@ -47,7 +46,9 @@ parser.add_argument(
     "--save_top_k",
     type=int,
     dest="save_top_k",
-    help="if save_top_k == k, the best k models according to the quantity monitored will be saved. if save_top_k == 0, no models are saved. if save_top_k == -1, all models are saved.",
+    help="if save_top_k == k, the best k models according to the quantity "
+    "monitored will be saved. if save_top_k == 0, no models are saved. "
+    "if save_top_k == -1, all models are saved.",
     default=-1,
 )
 
@@ -89,7 +90,8 @@ args.gpus = num_gpus
 new_batch_size = max(args.batch_size, num_gpus * args.batch_size)
 if new_batch_size != args.batch_size:
     print(
-        f"scaling batch size by device count {args.gpus} from {args.batch_size} to {new_batch_size}"
+        f"scaling batch size by device count {args.gpus} "
+        f"from {args.batch_size} to {new_batch_size}"
     )
     args.batch_size = new_batch_size
 
@@ -143,10 +145,6 @@ checkpoint_callback = ModelCheckpoint(
     every_n_epochs=1,
 )
 
-# summary(
-#     vae, (args.channels, args.image_size, args.image_size), batch_size=vae.batch_size
-# )
-
 lr_monitor = LearningRateMonitor(logging_interval="step")
 
 if args.auto_lr_find:
@@ -171,14 +169,6 @@ if RUN_AZURE_ML:
 
 trainer.callbacks.append(checkpoint_callback)
 trainer.callbacks.append(lr_monitor)
-# trainer.callbacks.append(
-#     GPUStatsMonitor(
-#         memory_utilization=True,
-#         gpu_utilization=True,
-#         intra_step_time=True,
-#         inter_step_time=True,
-#     )
-# )
 trainer.callbacks.append(IOMonitor())
 
 

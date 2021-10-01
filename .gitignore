@@ -127,3 +127,28 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+# AML temp files
+.amltmp
+
+# AML jupyter checkpoints
+.ipynb_aml_checkpoints/
+
+# Sandbox Code
+sandbox/
+
+#AzureML
+.azureml/
+
+#JetBrains
+.idea/
+
+#VSCode
+.vscode/
+
+# Data Directory
+data/*
+!data/README.md
+
+experiments/experiment1_input_analysis/image_based_drift/experiment/*
+!experiments/experiment1_input_analysis/image_based_drift/experiment/*.py

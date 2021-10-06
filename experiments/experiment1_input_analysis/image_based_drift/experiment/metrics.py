@@ -1,39 +1,7 @@
 import torch
-from torch._C import TupleType
 import torchvision
-from lib import weighted_mean
 from torch.nn import functional as F
 from torchmetrics import Metric
-
-"""
-    @staticmethod
-    def _collect(prev_loss, prev_imgs, prev_recon, loss, images, recon, k, largest):
-
-        loss = (
-            torch.cat((prev_loss.detach().cpu(), loss.detach().cpu()), dim=0)
-            if prev_loss != None
-            else loss.detach().cpu()
-        )
-        images = (
-            torch.cat((prev_imgs.detach().cpu(), images.detach().cpu()), dim=0)
-            if prev_imgs != None
-            else images.detach().cpu()
-        )
-        recon = (
-            torch.cat((prev_recon.detach().cpu(), recon.detach().cpu()), dim=0)
-            if prev_recon != None
-            else recon.detach().cpu()
-        )
-
-        loss, idx = torch.topk(
-            loss,
-            min(k, loss.shape[0]),
-            dim=0,
-            largest=largest,
-        )
-
-        return loss, images[idx.flatten()], recon[idx.flatten()]
-        """
 
 
 class ImageReconLogger(Metric):
@@ -44,15 +12,11 @@ class ImageReconLogger(Metric):
 
         super().__init__(compute_on_step=False, dist_sync_on_step=False)
 
-        # print("img_size:", img_size)
-
         self.img_shape = img_size
         self.k = k
 
         tenor_size = self.get_image_shape()
-        def_img = lambda: torch.empty(tenor_size).float()
-
-        # print("tenor_size:", tenor_size)
+        def_img = lambda: torch.empty(tenor_size).float()  # noqa
 
         self.add_state(
             "worst_loss", default=torch.empty((0,)).float(), dist_reduce_fx="cat"
@@ -147,11 +111,7 @@ class ImageReconLogger(Metric):
             False,
         )
 
-        # print(f"update {self.recon_loss_frontal}")
-
     def compute(self):
-
-        # print(f"self.recon_loss_frontal {self.recon_loss_frontal}")
         out = {
             "metrics": {
                 "val/recon_loss_frontal": self.recon_loss_frontal.float()
@@ -169,12 +129,6 @@ class ImageReconLogger(Metric):
         return out
 
     def get_grids(self):
-        # print(
-        #     f"b1 {self.best_loss.shape}, {self.best_img.shape}, {self.best_recon.shape}"
-        # )
-        # print(
-        #     f"w1, {self.worst_loss.shape}, {self.worst_img.shape}, {self.worst_recon.shape}"
-        # )
 
         self.best_loss = self.best_loss.view(-1, 1)
 
@@ -185,13 +139,6 @@ class ImageReconLogger(Metric):
         self.worst_img = self.worst_img.view(*self.get_image_shape(-1))
         self.worst_recon = self.worst_recon.view(*self.get_image_shape(-1))
 
-        # print(
-        #     f"b2 {self.best_loss.shape}, {self.best_img.shape}, {self.best_recon.shape}"
-        # )
-        # print(
-        #     f"w2, {self.worst_loss.shape}, {self.worst_img.shape}, {self.worst_recon.shape}"
-        # )
-
         self.best_loss, self.best_img, self.best_recon = self._topk(
             self.best_loss, self.best_img, self.best_recon, self.k, False
         )
@@ -199,13 +146,6 @@ class ImageReconLogger(Metric):
         self.worst_loss, self.worst_img, self.worst_recon = self._topk(
             self.worst_loss, self.worst_img, self.worst_recon, self.k, True
         )
-
-        # print(
-        #     f"b3 {self.best_loss.shape}, {self.best_img.shape}, {self.best_recon.shape}"
-        # )
-        # print(
-        #     f"w3, {self.worst_loss.shape}, {self.worst_img.shape}, {self.worst_recon.shape}"
-        # )
 
         grids = {}
         grids["best_grid"] = self._make_grid(self.best_img, self.best_recon)
@@ -224,7 +164,6 @@ class ImageReconLogger(Metric):
             make_grid_kwargs["nrow"] += 1
 
         grid_im = torch.empty(self.get_image_shape(self.k * 2)).cpu()
-        # print(f"grid_shape {grid_im.shape},... {images.shape}, {recons.shape}")
         grid_im[::2, ...] = images.cpu()
         grid_im[1::2, ...] = recons.cpu()
         grid_im = (
@@ -234,35 +173,7 @@ class ImageReconLogger(Metric):
         )
         return grid_im
 
-    # def make_grid(self, loss_text=True, **make_grid_kwargs):
-    #     best_im, best_loss = self._make_grid(
-    #         self.best_images,
-    #         self.best_recons,
-    #         self.best_losses,
-    #         loss_text=loss_text,
-    #         **make_grid_kwargs,
-    #     )
-    #
-    #     worst_im, worst_loss = self._make_grid(
-    #         self.worst_images,
-    #         self.worst_recons,
-    #         self.worst_losses,
-    #         loss_text=loss_text,
-    #         **make_grid_kwargs,
-    #     )
-    #
-    #     return best_im, best_loss, worst_im, worst_loss
-
     def get_values_csv(self, sep=","):
         return "\n".join(
-            [f"index,mse"] + ["{}{}{:.5f}".format(p, sep, v) for p, v in self.values]
+            ["index,mse"] + ["{}{}{:.5f}".format(p, sep, v) for p, v in self.values]
         )
-
-    # def get_recon_stats(self):
-    #     best_var = self.best_recons.var(dim=0).cpu().numpy().transpose(1, 2, 0)
-    #     best_mean = self.best_recons.mean(dim=0).cpu().numpy().transpose(1, 2, 0)
-    #
-    #     worst_var = self.worst_recons.var(dim=0).cpu().numpy().transpose(1, 2, 0)
-    #     worst_mean = self.worst_recons.mean(dim=0).cpu().numpy().transpose(1, 2, 0)
-    #
-    #     return best_mean, best_var, worst_mean, worst_var

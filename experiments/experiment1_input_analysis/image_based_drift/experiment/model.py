@@ -8,7 +8,7 @@ from pytorch_lightning.core.lightning import LightningModule
 from torch.utils.data import DataLoader
 
 from lib import ChestXrayDataset, conv_output_shape, weighted_mean
-from metrics import ImageReconLogger
+
 
 ImageFile.LOAD_TRUNCATED_IMAGES = True
 
@@ -140,6 +140,8 @@ class VAE(LightningModule):
         self.image_recon_logger = None
 
         if log_recon_images > 0:
+            from metrics import ImageReconLogger
+
             self.image_recon_logger = ImageReconLogger(
                 (channels, image_size, image_size), k=log_recon_images
             )
@@ -172,7 +174,7 @@ class VAE(LightningModule):
 
         try:
             p, q, z = self.sample(mu, logvar)
-        except:
+        except:  # noqa
             print(f"mu {mu}, logvar {logvar}")
             raise
 

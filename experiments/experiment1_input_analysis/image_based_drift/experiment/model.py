@@ -7,7 +7,8 @@ from azureml.core import Run
 from pytorch_lightning.core.lightning import LightningModule
 from torch.utils.data import DataLoader
 
-from lib import ChestXrayDataset, conv_output_shape, weighted_mean
+from dataset import ChestXrayDataset
+from lib import conv_output_shape, weighted_mean
 
 
 ImageFile.LOAD_TRUNCATED_IMAGES = True
@@ -27,9 +28,9 @@ def normal_init(m, mean, std):
 class VAE(LightningModule):
     def __init__(
         self,
-        train_csv,
-        val_csv,
-        data_path,
+        train_csv=None,
+        val_csv=None,
+        data_path=None,
         batch_size=32,
         zsize=8,
         image_size=128,
@@ -82,7 +83,6 @@ class VAE(LightningModule):
         mul = 1
         inputs = channels
         for i in range(self.layer_count):
-            # print(f"encoder.{i}\n input shape", (inputs, h_encoder, w_encoder))
             h_encoder, w_encoder = conv_output_shape((h_encoder, w_encoder), 4, 2, 1)
             self.encoder_out = (h_encoder, w_encoder)
 
@@ -94,11 +94,7 @@ class VAE(LightningModule):
 
             inputs = width * mul
             mul *= 2
-
-            # print(f" output shape", (inputs, h_encoder, w_encoder))
         self.encoder = nn.Sequential(*encode)
-
-        # print(f"z", (inputs, h_encoder, w_encoder))
         self.d_max = inputs
         self.fc1 = nn.Linear(
             inputs * self.encoder_out[0] * self.encoder_out[1], self.zsize
@@ -127,13 +123,6 @@ class VAE(LightningModule):
 
         self.decoder = nn.Sequential(*decode)
 
-        self.train_dataset = ChestXrayDataset(
-            self.root_folder, train_csv, image_size, True, channels
-        )
-        self.val_dataset = ChestXrayDataset(
-            self.root_folder, val_csv, image_size, True, channels
-        )
-
         self.monitor_train = "train/loss"
         self.monitor_val = "val/loss"
 
@@ -158,14 +147,15 @@ class VAE(LightningModule):
         std = torch.exp(log_var / 2)
         p = torch.distributions.Normal(torch.zeros_like(mu), torch.ones_like(std))
         q = torch.distributions.Normal(mu.nan_to_num(0), std.nan_to_num(float("inf")))
-        z = q.rsample()
+        if self.training:
+            z = q.rsample()
+        else:
+            z = mu
         return p, q, z
 
     def forward(self, batch):
         # encode
         x = self.encoder(batch)
-
-        # print("encoder out", x.shape)
 
         # middle part
         x = x.view(x.shape[0], self.d_max * self.encoder_out[0] * self.encoder_out[1])
@@ -178,11 +168,10 @@ class VAE(LightningModule):
             print(f"mu {mu}, logvar {logvar}")
             raise
 
-        # print("z", z.shape)
         # reconstruct
         image_batch_recon = self.decode(z)
 
-        return image_batch_recon, z, p, q
+        return image_batch_recon, z, p, q, logvar
 
     def weight_init(self, mean, std):
         for m in self._modules:
@@ -217,6 +206,14 @@ class VAE(LightningModule):
         return {"optimizer": optimizer, "lr_scheduler": lr_scheduler}
 
     def train_dataloader(self):
+
+        self.train_dataset = ChestXrayDataset(
+            self.root_folder,
+            self.hparams.train_csv,
+            self.hparams.image_size,
+            True,
+            self.hparams.channels,
+        )
         return DataLoader(
             dataset=self.train_dataset,
             batch_size=self.batch_size,
@@ -226,6 +223,15 @@ class VAE(LightningModule):
         )
 
     def val_dataloader(self):
+
+        self.val_dataset = ChestXrayDataset(
+            self.root_folder,
+            self.hparams.val_csv,
+            self.hparams.image_size,
+            True,
+            self.hparams.channels,
+        )
+
         return DataLoader(
             dataset=self.val_dataset,
             batch_size=self.batch_size,
@@ -236,7 +242,7 @@ class VAE(LightningModule):
 
     def step(self, images, loss_weights=None):
 
-        image_batch_recon, z, p, q = self.forward(images)
+        image_batch_recon, z, p, q, _ = self.forward(images)
 
         log_qz = q.log_prob(z)
         log_pz = p.log_prob(z)
@@ -263,14 +269,19 @@ class VAE(LightningModule):
         )
 
     def training_step(self, image_batch, batch_idx):
-        batch, label, index, frontal = image_batch
+        batch = (image_batch["image"],)
         loss, logs, image_batch_recon = self.step(batch)
         for log_name, value in logs.items():
             self.log(f"train/{log_name}", value, on_step=True)
         return loss
 
     def validation_step(self, image_batch, batch_idx):
-        batch, label, index, frontal = image_batch
+        batch, label, frontal, index = (
+            image_batch["image"],
+            image_batch["label"],
+            image_batch["frontal"],
+            image_batch["index"],
+        )
         loss, logs, recon = self.step(batch, loss_weights=frontal)
 
         for log_name, value in logs.items():
@@ -286,16 +297,13 @@ class VAE(LightningModule):
                 index.detach(),
                 frontal.detach(),
             )
-        #     extra_metrics = self.image_recon_logger(batch, recon, label, index, frontal)
-        #     for log_name, value in extra_metrics.items():
-        #         self.log(
-        #             f"val/{log_name}",
-        #             value.detach().cpu(),
-        #             on_step=False,
-        #             on_epoch=True,
-        #         )
 
         return loss
+
+    def predict_step(self, image_batch, batch_idx, **kwargs):
+        batch = image_batch["image"]
+        image_batch_recon, z, p, q, logvar = self.forward(batch)
+        return image_batch_recon, z, logvar
 
     def on_train_epoch_start(self):
         if self.image_recon_logger is not None:
@@ -306,8 +314,6 @@ class VAE(LightningModule):
             self.image_recon_logger.reset()
 
     def on_validation_end(self) -> None:
-
-        # print(f"global_zero {self.trainer.is_global_zero}")
         run = Run.get_context()
         epoch = (
             f"{self.current_epoch:0>4}"
@@ -337,33 +343,9 @@ class VAE(LightningModule):
                     self.logger.experiment.log_image(
                         run.id, grids["worst_grid"], f"{epoch}-image-worst.png"
                     )
-                    # self.logger.experiment.log_text(
-                    #     run.id, worst_loss, f"{epoch}-loss-worst.txt"
-                    # )
                     self.logger.experiment.log_image(
                         run.id, grids["best_grid"], f"{epoch}-image-best.png"
                     )
-                    # self.logger.experiment.log_text(run.id, best_loss, f"{epoch}-loss-best.txt")
-
-                    # (
-                    #     best_mean,
-                    #     best_var,
-                    #     worst_mean,
-                    #     worst_var,
-                    # ) = self.image_recon_logger.get_recon_stats()
-
-                    # self.logger.experiment.log_image(
-                    #     run.id, best_mean, f"{epoch}-recon-best-mean.png"
-                    # )
-                    # self.logger.experiment.log_image(
-                    #     run.id, best_var, f"{epoch}-recon-best-var.png"
-                    # )
-                    # self.logger.experiment.log_image(
-                    #     run.id, worst_mean, f"{epoch}-recon-worst-mean.png"
-                    # )
-                    # self.logger.experiment.log_image(
-                    #     run.id, worst_var, f"{epoch}-recon-worst-var.png"
-            # )
 
     @staticmethod
     def add_model_args(parser):

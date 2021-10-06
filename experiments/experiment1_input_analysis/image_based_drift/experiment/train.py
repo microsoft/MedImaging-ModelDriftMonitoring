@@ -3,12 +3,13 @@ import os
 import pytorch_lightning as pl
 import subprocess
 import torch
-from model import VAE
+
 from pytorch_lightning.callbacks import LearningRateMonitor
 from pytorch_lightning.callbacks.model_checkpoint import ModelCheckpoint
 from pytorch_lightning.loggers import MLFlowLogger
 
 from lib import IOMonitor
+from model import VAE
 
 print("--- ENV VARIABLES ---")
 for k, v in sorted(os.environ.items()):
@@ -134,7 +135,7 @@ vae = VAE(
 )
 
 checkpoint_callback = ModelCheckpoint(
-    dirpath=ckpt_path,
+    dirpath=model_dirpath,
     filename="{epoch:0>3}",
     save_last=True,
     save_top_k=-1,

@@ -46,23 +46,27 @@ def weighted_mean(values, weights=None):
 
 
 class IOMonitor(Callback):
+    def __init__(self, prefix="train", *args, **kwargs):
+        self.prefix = prefix
+        super().__init__(*args, **kwargs)
+
     def on_train_epoch_start(self, trainer, module, *args, **kwargs):
         self.data_time = time.time()
         self.total_time = time.time()
 
     def on_train_batch_start(self, trainer, module, *args, **kwargs):
         elapsed = time.time() - self.data_time
-        module.log("train/time.data", elapsed, on_step=True, on_epoch=True)
+        module.log(f"{self.prefix}/time.data", elapsed, on_step=True, on_epoch=True)
 
         self.batch_time = time.time()
 
     def on_train_batch_end(self, trainer, module, *args, **kwargs):
 
         elapsed = time.time() - self.batch_time
-        module.log("train/time.batch", elapsed, on_step=True, on_epoch=True)
+        module.log(f"{self.prefix}/time.batch", elapsed, on_step=True, on_epoch=True)
 
         elapsed = time.time() - self.total_time
-        module.log("train/time.total", elapsed, on_step=True, on_epoch=True)
+        module.log(f"{self.prefix}/time.total", elapsed, on_step=True, on_epoch=True)
 
         self.total_time = time.time()
         self.data_time = time.time()

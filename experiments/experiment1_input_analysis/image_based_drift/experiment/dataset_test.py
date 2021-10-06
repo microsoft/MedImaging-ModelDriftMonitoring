@@ -2,6 +2,8 @@ import argparse
 import os
 from dataset import PadChestDataset, ChestXrayDataset
 from torch.utils.data import DataLoader
+from azureml.core import Run, Model
+from tqdm import tqdm
 import torch
 
 num_gpus = torch.cuda.device_count()
@@ -75,10 +77,8 @@ dataloader2 = DataLoader(
 )
 
 
-from azureml.core import Run, Model
-
 run = Run.get_context()
-from tqdm import tqdm
+
 
 step = 0
 for batch1, batch2 in tqdm(

@@ -95,15 +95,18 @@ class VAEPredictionWriter(BasePredictionWriter):
         if self.write_grid > 0 and (
             self.write_grid >= 1 or random.random() <= self.write_grid
         ):
-            grid = make_grid(images, image_recons)
-            save_image(grid, os.path.join(self.output_dir, "grids", f"{batch_idx}.png"))
+            save_image(
+                make_grid(images, image_recons),
+                os.path.join(self.output_dir, "grids", f"{batch_idx}.png"),
+            )
 
-        for recon_path, recon, image in zip(recon_paths, image_recons, images):
-            save_image(
-                recon,
-                os.path.join(self.output_dir, "images", "recon", recon_path),
-            )
-            save_image(
-                image,
-                os.path.join(self.output_dir, "images", "inputs", recon_path),
-            )
+        if self.write_recon:
+            for recon_path, recon, image in zip(recon_paths, image_recons, images):
+                save_image(
+                    recon,
+                    os.path.join(self.output_dir, "images", "recon", recon_path),
+                )
+                save_image(
+                    image,
+                    os.path.join(self.output_dir, "images", "inputs", recon_path),
+                )

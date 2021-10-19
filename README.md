@@ -1,14 +1,8 @@
+> This code is provided for research and development use only. This code is not intended for use in clinical decision-making or for any other clinical use and the performance of the code for clinical use has not been established. This source code requires selection of a reference and test datasets by the user. Microsoft does not warrant the suitability or accuracy of any predictive model generated using this source code. You bear sole responsibility for selection of a training dataset and for evaluation and use of any resulting model
+
 # Project Model Drift Monitoring
 
-> This repo has been populated by an initial template to help get you started. Please
-> make sure to update the content to build a great experience for community-building.
-
-As the maintainer of this project, please make a few updates:
-
-- Improving this README.MD file to provide a great experience
-- Updating SUPPORT.MD with content about this project's support experience
-- Understanding the security reporting process in SECURITY.MD
-- Remove this section from the README
+This repository contains sample code and a framework for monitoring drift in medical imaging DICOM metadata as well as derived machine learning models
 
 # Getting Started
 
@@ -19,8 +13,6 @@ conda env create -f .\environment.yml --prefix ".venv"
 conda activate conda environment
 conda develop .
 ```
-
-TODO:
 
 # Contributing
 

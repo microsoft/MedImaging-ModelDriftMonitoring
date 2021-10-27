@@ -11,7 +11,7 @@ Prepare conda environment
 ```
 conda env create -f .\environment.yml --prefix ".venv"
 conda activate conda environment
-conda develop .
+conda develop src
 ```
 
 # Contributing

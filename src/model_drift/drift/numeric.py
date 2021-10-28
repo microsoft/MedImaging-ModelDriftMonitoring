@@ -1,10 +1,10 @@
 import numpy as np
 from scipy.special import kolmogi
 from scipy.stats import ks_2samp
-from .base import DriftStatBase
+from .base import BaseDriftCalculator
 
 
-class KSDriftStat(DriftStatBase):
+class KSDriftCalculator(BaseDriftCalculator):
     name = "ks"
 
     def __init__(self, ref, q_val=0.1, alternative='two-sided', mode='asymp', ):
@@ -28,7 +28,7 @@ class KSDriftStat(DriftStatBase):
         return kolmogi(q) * np.sqrt((n1 + n2) / (n1 * n2))
 
 
-class BasicDriftStat(DriftStatBase):
+class BasicDriftCalculator(BaseDriftCalculator):
     name = "stats"
 
     def predict(self, sample):

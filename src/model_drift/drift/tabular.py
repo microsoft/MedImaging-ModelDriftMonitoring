@@ -2,7 +2,8 @@ import pandas as pd
 import tqdm
 from collections import defaultdict
 from model_drift.helpers import nested2series
-from .collection import StatCollection
+from .collection import DriftCollectionCalculator
+# from .base import DriftStatBase
 
 tqdm_func = tqdm.tqdm
 
@@ -13,14 +14,15 @@ def sample_frame(df, day, window='30D'):
     return df.loc[str(day_dt - delta):str(day_dt)]
 
 
-class DriftWindowCalculator(object):
-
+class TabularDriftCalculator(object):
     ## TODO: Handle NaNs and Non-numerics
-
     def __init__(self, df_ref):
         self.ref = df_ref
         self.drift_metric_dict = defaultdict(set)
         self._metric_collections = {}
+
+    def auto_add_drift_calculators(self):
+        pass
 
     def add_drift_stat(self, col, drift_cls, **drift_kwargs):
         item = (drift_cls, tuple(sorted(drift_kwargs.items())))
@@ -29,7 +31,7 @@ class DriftWindowCalculator(object):
     def prepare(self):
         for col, drift_metric_set in self.drift_metric_dict.items():
             ref = self.ref[col]
-            self._metric_collections[col] = StatCollection([
+            self._metric_collections[col] = DriftCollectionCalculator([
                 drift_cls(ref, **dict(kwargs))
                 for drift_cls, kwargs in drift_metric_set
             ])
@@ -44,6 +46,20 @@ class DriftWindowCalculator(object):
         if include_count:
             out['count'] = len(sample)
         return out
+
+    def drilldown(self, df, dates, cols=None, window='30D', include_ref=True):
+
+        if cols is None:
+            cols = list(set(self.ref.columns).intersection(df))
+        out = []
+        if include_ref:
+            out.append(self.ref[cols].assign(src="_ref"))
+
+        samples = {day: sample_frame(df[cols], day, window=window).assign(src=day) for day in dates}
+        stats = pd.concat({date: nested2series(self.predict(sample, cols=cols)) for date, sample in samples.items()},
+                          axis=1)
+        data = pd.concat(out + list(samples.values())).reset_index()
+        return stats, data
 
     def rolling_window_predict(self, dataframe, window="30D", stride="D", min_periods=1):
         if not isinstance(dataframe.index, pd.DatetimeIndex):
@@ -70,17 +86,3 @@ class DriftWindowCalculator(object):
         for i in tqdm_func(tmp_index):
             out[i] = _apply(i)
         return pd.concat(out, axis=0).unstack(level=0).T
-
-    def compare_dates(self, df, compare, cols=None, window='30D', include_ref=True):
-
-        if cols is None:
-            cols = list(set(self.ref.columns).intersection(df))
-        out = []
-        if include_ref:
-            out.append(self.ref[cols].assign(src="_ref"))
-
-        samples = {day: sample_frame(df[cols], day, window=window).assign(src=day) for day in compare}
-        stats = pd.concat({date: nested2series(self.predict(sample, cols=cols)) for date, sample in samples.items()},
-                          axis=1)
-        data = pd.concat(out + list(samples.values())).reset_index()
-        return stats, data

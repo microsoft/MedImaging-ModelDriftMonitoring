@@ -28,16 +28,35 @@ def normalize_PIL(image):
     return image.convert("RGB")
 
 
+def get_transform(image_size, normalization=(IMAGENET_MEAN, IMAGENET_STD), channels=3, **kwargs):
+    # Define list of image transformations
+    image_transformation = [
+        transforms.Resize(image_size),
+        transforms.CenterCrop(image_size),
+    ]
+
+    if channels == 1:
+        image_transformation.append(transforms.Grayscale(num_output_channels=channels))
+
+    image_transformation.append(transforms.ToTensor())
+
+    if normalization and channels == 3:
+        # Normalization with mean and std from ImageNet
+        image_transformation.append(transforms.Normalize(IMAGENET_MEAN, IMAGENET_STD))
+
+    return transforms.Compose(image_transformation)
+
+
 class BaseDataset(Dataset):
     def __init__(
-            self,
-            folder_dir,
-            dataframe_path,
-            image_size=128,
-            normalization=True,
-            channels=3,
-            frontal_only=False,
-            image_dir=None,
+        self,
+        folder_dir,
+        dataframe_path,
+        image_size=128,
+        normalization=True,
+        channels=3,
+        frontal_only=False,
+        image_dir=None,
     ):
         """
         Init Dataset
@@ -65,22 +84,16 @@ class BaseDataset(Dataset):
 
         print("Initializing:", str(self))
 
-        # Define list of image transformations
-        image_transformation = [
-            transforms.Resize(image_size),
-            transforms.CenterCrop(image_size),
-        ]
+        deploy_params = {
+            "transform": {
+                "image_size": image_size,
+                "channels": channels,
+                "normalization": (IMAGENET_MEAN, IMAGENET_STD),
+            }
+            # "labels": self.get_labels(),
+        }
 
-        if channels == 1:
-            image_transformation.append(transforms.Grayscale(num_output_channels=channels))
-
-        image_transformation.append(transforms.ToTensor())
-
-        if normalization and channels == 3:
-            # Normalization with mean and std from ImageNet
-            image_transformation.append(transforms.Normalize(IMAGENET_MEAN, IMAGENET_STD))
-
-        self.image_transformation = transforms.Compose(image_transformation)
+        self.image_transformation = get_transform(**deploy_params["transform"])
 
         self._reset_lists()
         self.prepare_data()
@@ -173,14 +186,14 @@ class ChestXrayDataset(BaseDataset):
 
 class PadChestDataset(BaseDataset):
     def __init__(
-            self,
-            folder_dir,
-            dataframe_path,
-            image_size,
-            normalization=True,
-            channels=3,
-            image_dir=None,
-            load_labels=True,
+        self,
+        folder_dir,
+        dataframe_path,
+        image_size,
+        normalization=True,
+        channels=3,
+        image_dir=None,
+        load_labels=True,
     ):
         image_dir = image_dir or os.path.join(folder_dir, "png")
         self.load_labels = load_labels

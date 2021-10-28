@@ -1,7 +1,7 @@
-from .base import DriftStatBase
+from .base import BaseDriftCalculator
 
 
-class StatCollection(DriftStatBase):
+class DriftCollectionCalculator(BaseDriftCalculator):
     def __init__(self, collection=None):
         self.collection = collection or []
 

@@ -1,10 +1,10 @@
 import numpy as np
 from collections import Counter
 from scipy.stats import chi2_contingency, chi2
-from .base import DriftStatBase
+from .base import BaseDriftCalculator
 
 
-class ChiSqDriftStat(DriftStatBase):
+class ChiSqDriftCalculator(BaseDriftCalculator):
     name = "chi2"
 
     def __init__(self, ref, q_val=0.1, correction=True, lambda_=None):

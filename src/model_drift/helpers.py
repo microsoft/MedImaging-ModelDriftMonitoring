@@ -1,5 +1,16 @@
 import pandas as pd
 from distutils import dir_util
+from . import settings
+from .utils.padchest import fix_strlst
+
+
+def read_padchest(csv_file=None) -> pd.DataFrame:
+    csv_file = csv_file or settings.PADCHEST_FILENAME
+    df = pd.read_csv(csv_file, low_memory=False, index_col=0)
+    df["StudyDate"] = pd.to_datetime(df["StudyDate_DICOM"], format="%Y%m%d")
+    df["PatientBirth"] = pd.to_datetime(df["PatientBirth"], format="%Y")
+    df["Labels"] = fix_strlst(df["Labels"])
+    return df
 
 
 def prepare_padchest(df) -> pd.DataFrame:
@@ -9,13 +20,13 @@ def prepare_padchest(df) -> pd.DataFrame:
 
 
 def rolling_dt_apply_with_stride(
-        dataframe,
-        function,
-        window="30D",
-        stride="D",
-        unique_only=False,
-        center=False,
-        min_periods=None,
+    dataframe,
+    function,
+    window="30D",
+    stride="D",
+    unique_only=False,
+    center=False,
+    min_periods=None,
 ) -> pd.DataFrame:
     if unique_only:
         tmp_index = dataframe.index.unique()
@@ -30,7 +41,7 @@ def rolling_dt_apply_with_stride(
         raise ValueError("Centering does not work with all windows and strides") from e
 
     def _apply(i):
-        window = dataframe[i - bdelta: i + fdelta]
+        window = dataframe[i - bdelta : i + fdelta]
         if min_periods is not None and len(window) < min_periods:
             return None
         return window.agg(function)
@@ -44,9 +55,9 @@ def copytree(src, dst):
 
 def fix_multiindex(out):
     def __make_tuple(k, size):
-        outk = [''] * size
+        outk = [""] * size
         if isinstance(k, tuple):
-            outk[:len(k)] = list(k)
+            outk[: len(k)] = list(k)
         else:
             outk[0] = k
         return tuple(outk)

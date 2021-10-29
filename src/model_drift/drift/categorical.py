@@ -13,12 +13,17 @@ class ChiSqDriftCalculator(BaseDriftCalculator):
         self.ref_counts = Counter(self.ref)
         self.correction = correction
         self.lambda_ = lambda_
+        self.use_freq = True
 
     def predict(self, sample):
         sample_counts = Counter(sample)
         keys = set().union(self.ref_counts, sample_counts)
-        exp = [self.ref_counts.get(k, 0) for k in keys]
-        obs = [sample_counts.get(k, 0) for k in keys]
+        exp = np.array([self.ref_counts.get(k, 0) for k in keys])
+        obs = np.array([sample_counts.get(k, 0) for k in keys])
+
+        if self.use_freq:
+            exp = exp/exp.sum()
+            obs = obs/obs.sum()
 
         out = {}
         out['distance'], out['pval'], out['dof'], _ = chi2_contingency(np.vstack([exp, obs]),

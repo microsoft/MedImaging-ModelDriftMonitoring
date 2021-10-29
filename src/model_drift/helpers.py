@@ -1,7 +1,8 @@
+import os
 import pandas as pd
 from distutils import dir_util
 from . import settings
-from .utils.padchest import fix_strlst
+from .data.utils import fix_strlst
 
 
 def read_padchest(csv_file=None) -> pd.DataFrame:
@@ -20,13 +21,13 @@ def prepare_padchest(df) -> pd.DataFrame:
 
 
 def rolling_dt_apply_with_stride(
-    dataframe,
-    function,
-    window="30D",
-    stride="D",
-    unique_only=False,
-    center=False,
-    min_periods=None,
+        dataframe,
+        function,
+        window="30D",
+        stride="D",
+        unique_only=False,
+        center=False,
+        min_periods=None,
 ) -> pd.DataFrame:
     if unique_only:
         tmp_index = dataframe.index.unique()
@@ -41,7 +42,7 @@ def rolling_dt_apply_with_stride(
         raise ValueError("Centering does not work with all windows and strides") from e
 
     def _apply(i):
-        window = dataframe[i - bdelta : i + fdelta]
+        window = dataframe[i - bdelta: i + fdelta]
         if min_periods is not None and len(window) < min_periods:
             return None
         return window.agg(function)
@@ -53,51 +54,44 @@ def copytree(src, dst):
     dir_util.copy_tree(str(src), str(dst))
 
 
-def fix_multiindex(out):
-    def __make_tuple(k, size):
-        outk = [""] * size
-        if isinstance(k, tuple):
-            outk[: len(k)] = list(k)
-        else:
-            outk[0] = k
-        return tuple(outk)
-
-    out = nested2tuplekeys(out)
-    tuple_keys = [len(k) for k in out.keys() if isinstance(k, tuple)] + [0]
-    max_tuple_len = max(tuple_keys)
-    if not max_tuple_len:
-        return out
-    return {__make_tuple(k, max_tuple_len): v for k, v in out.items()}
+def modelpath2name(model_path):
+    return model_path.replace('/', '-')
 
 
-def nested2series(out, name=None):
-    return pd.Series(fix_multiindex(out), name=name)
+def print_env():
+    print("--- ENV VARIABLES ---")
+    for k, v in sorted(os.environ.items()):
+        print(f" {k}={v}")
+    print("--------------------")
 
 
-def nested2tuplekeys(out):
-    def __fixkey(k, name):
-        if isinstance(name, tuple):
-            name = list(name)
+def download_model_azure(model_path, output_dir="./outputs/", local_path_env_var='_LOCAL_MODEL_PATH_'):
+    from azureml.core import Run, Model
+    run = Run.get_context()
+    # Add run context for AML
+    ws = run.experiment.workspace
+    if local_path_env_var in os.environ:
+        model_path = os.getenv(local_path_env_var)
+        print(f"Found model path in environment (VAR={local_path_env_var}): {model_path}")
+    else:
+        model_name = modelpath2name(model_path)
+        print(f"Downloading azure registered model: {model_name} ")
+        m = Model(ws, model_name)
+        os.environ[local_path_env_var] = model_path = m.download(
+            exist_ok=True,
+            target_dir=os.path.join(output_dir),
+        )
+        print(f"Download Complete! Path: {model_path}")
+    return model_path
 
-        if not isinstance(name, list):
-            name = [name]
 
-        if isinstance(k, tuple):
-            k = list(k)
+def get_azure_logger():
+    from azureml.core import Run
+    from pytorch_lightning.loggers import MLFlowLogger
+    run = Run.get_context()
+    mlflow_url = run.experiment.workspace.get_mlflow_tracking_uri()
 
-        if not isinstance(k, list):
-            k = [k]
-
-        return tuple(name + k)
-
-    if not isinstance(out, dict):
-        return out
-    out2 = {}
-    for stat_name, nested in out.items():
-        nested = nested2tuplekeys(nested)
-        if not isinstance(nested, dict):
-            out2[stat_name] = nested
-            continue
-        out2.update({__fixkey(k, stat_name): v for k, v in nested.items()})
-
-    return out2
+    print("ml flow uri:", mlflow_url)
+    mlf_logger = MLFlowLogger(experiment_name=run.experiment.name, tracking_uri=mlflow_url)
+    mlf_logger._run_id = run.id
+    return mlf_logger

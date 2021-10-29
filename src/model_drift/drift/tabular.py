@@ -1,8 +1,9 @@
 import pandas as pd
 import tqdm
 from collections import defaultdict
-from model_drift.helpers import nested2series
+from model_drift.data.utils import nested2series, rolling_window_dt_apply
 from .collection import DriftCollectionCalculator
+
 # from .base import DriftStatBase
 
 tqdm_func = tqdm.tqdm
@@ -61,28 +62,5 @@ class TabularDriftCalculator(object):
         data = pd.concat(out + list(samples.values())).reset_index()
         return stats, data
 
-    def rolling_window_predict(self, dataframe, window="30D", stride="D", min_periods=1):
-        if not isinstance(dataframe.index, pd.DatetimeIndex):
-            raise ValueError()
-
-        tmp_index = pd.date_range(
-            dataframe.index.min(), dataframe.index.max(), freq=stride
-        )
-
-        cols = list(dataframe)
-        delta = pd.tseries.frequencies.to_offset(window)
-        fdelta = pd.tseries.frequencies.to_offset(window) * 0
-        bdelta = delta - fdelta
-
-        def _apply(i):
-            x = dataframe.loc[str(i - bdelta):str(i + fdelta)]
-            if len(x) < min_periods:
-                return None
-            preds = self.predict(x, include_count=False)
-            preds["count"] = len(x)
-            return nested2series(preds)
-
-        out = {}
-        for i in tqdm_func(tmp_index):
-            out[i] = _apply(i)
-        return pd.concat(out, axis=0).unstack(level=0).T
+    def rolling_window_predict(self, dataframe, **kwargs):
+        return rolling_window_dt_apply(dataframe, lambda x: self.predict(x, include_count=False), **kwargs)

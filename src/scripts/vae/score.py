@@ -1,9 +1,8 @@
 import argparse
 import os
-from azureml import data
 import pytorch_lightning as pl
 from model_drift.models.vae import VAE
-from model_drift.dataset import PadChestDataset
+from data.dataset import PadChestDataset
 import torch
 from torch.utils.data import DataLoader
 from model_drift.callbacks import VAEPredictionWriter

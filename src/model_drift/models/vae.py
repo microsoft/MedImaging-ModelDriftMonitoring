@@ -4,7 +4,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from PIL import ImageFile
 from azureml.core import Run
-from dataset import ChestXrayDataset
+from data.dataset import ChestXrayDataset
 from lib import conv_output_shape, weighted_mean
 from pytorch_lightning.core.lightning import LightningModule
 from torch.utils.data import DataLoader

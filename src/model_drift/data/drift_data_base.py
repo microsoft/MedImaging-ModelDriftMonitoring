@@ -43,16 +43,6 @@ class ModelDriftData(object):
     def __len__(self):
         return len(self.df)
 
-    def split(self, split_dates, studydate_index=False):
-        assert len(split_dates) > 0
-        self.prepare()
-        df = self.df
-        if studydate_index:
-            df = df.set_index("StudyDate", drop=False)
-
-        for new_df in split_on_date(df, split_dates, col="StudyDate"):
-            yield self._copy_with_df(new_df)
-
     def _copy_with_df(self, df):
         cpy = copy.copy(self)
         cpy.df = df
@@ -81,6 +71,9 @@ class ModelDriftData(object):
     @classmethod
     def from_csv(cls, csv_file=None, **init_kwargs):
         return cls(cls.read_csv(csv_file), **init_kwargs)
+
+    def to_csv(self, *args, **kwargs):
+        self.df.to_csv(*args, **kwargs)
 
     @classmethod
     def splits(cls, csv_file=None, studydate_index=False, **init_kwargs):

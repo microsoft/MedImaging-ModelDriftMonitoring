@@ -13,7 +13,7 @@ if library_path not in PYPATH:
     PYPATH.append(library_path)
     os.environ["PYTHONPATH"] = ":".join(PYPATH)
 
-from model_drift.lib import IOMonitor
+from model_drift.callbacks import IOMonitor
 from model_drift.models.finetune import CheXFinetune
 from model_drift.helpers import download_model_azure, get_azure_logger
 from model_drift.data.datamodules import PadChestDataModule
@@ -107,3 +107,5 @@ if rank_id == "0-0":
         print(model, file=f)
 
 trainer.fit(model, dm)
+
+trainer.training_type_plugin.barrier()

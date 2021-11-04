@@ -1,11 +1,9 @@
 import copy
 import numpy as np
-import os
 import pandas as pd
-import yaml
 from .dataset import PadChestDataset
 from .drift_data_base import ModelDriftData
-from .utils import fix_strlst
+from .utils import fix_strlst, split_on_date
 from .. import settings
 
 LABEL_MAP = {
@@ -155,6 +153,16 @@ class PadChest(ModelDriftData):
     def __copy__(self):
         return type(self)(df=copy.copy(self.df), label_map=copy.copy(self.label_map),
                           bad_files=copy.copy(self.bad_files))
+
+    def split(self, split_dates, studydate_index=False):
+        assert len(split_dates) > 0
+        self.prepare()
+        df = self.df
+        if studydate_index:
+            df = df.set_index("StudyDate", drop=False)
+
+        for new_df in split_on_date(df, split_dates, col="StudyDate"):
+            yield self._copy_with_df(new_df.copy())
 
     @staticmethod
     def read_csv(csv_file=None):

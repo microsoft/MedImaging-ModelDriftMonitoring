@@ -3,7 +3,9 @@ import argparse
 import os
 import pytorch_lightning as pl
 import torch
-from torch.utils.data import DataLoader
+import itertools
+import tqdm
+from argparse import Namespace
 
 library_path = str(Path(__file__).parent.parent.parent)
 PYPATH = os.environ.get("PYTHONPATH", "").split(":")
@@ -13,9 +15,11 @@ if library_path not in PYPATH:
 
 from model_drift import helpers
 from model_drift.models.finetune import CheXFinetune
-from data.dataset import PadChestDataset
+from model_drift.data.datamodules import PadChestDataModule
 from model_drift.callbacks import ClassifierPredictionWriter
-from model_drift.models.finetune import IMAGE_SIZE, CHANNELS
+from model_drift.data.transform import VisionTransformer
+
+helpers.basic_logging()
 
 ddp_model_check_key = "_LOCAL_MODEL_PATH_"
 
@@ -38,15 +42,9 @@ print()
 parser = argparse.ArgumentParser()
 parser.add_argument("--model", type=str, dest="model", help="path to model or registered model name")
 parser.add_argument("--run_azure", type=int, dest="run_azure", help="run in AzureML", default=0)
-
-parser.add_argument("--data_folder", type=str, dest="data_folder", help="data folder mounting point")
-parser.add_argument("--batch_size", type=int, dest="batch_size", help="batch_size", default=64)
-parser.add_argument("--num_workers", type=int, dest="num_workers", help="number of workers for loading", default=-1, )
-
-parser.add_argument("--csv", type=str, dest="csv", help="csv",
-                    default="PADCHEST_chest_x_ray_images_labels_160K_01.02.19.csv", )
 parser.add_argument("--output_dir", type=str, dest="output_dir", help="output_dir", default="outputs")
 
+parser = PadChestDataModule.add_argparse_args(parser)
 parser = pl.Trainer.add_argparse_args(parser)
 
 args = parser.parse_args()
@@ -61,29 +59,19 @@ if args.run_azure:
 
 args.default_root_dir = args.output_dir
 
-model = CheXFinetune.load_from_checkpoint(args.model, predict_mode=True)
+model = CheXFinetune.load_from_checkpoint(args.model, pretrained=None)
+transformer = VisionTransformer.from_argparse_args(Namespace(), **model.hparams.params)
+dm = PadChestDataModule.from_argparse_args(args, transforms=transformer.train_transform)
+writer = ClassifierPredictionWriter(args.output_dir)
 
 if args.num_workers < 0:
     args.num_workers = num_cpus
 
-dataset = PadChestDataset(
-    args.data_folder,
-    args.csv,
-    IMAGE_SIZE,
-    True,
-    channels=CHANNELS,
-    load_labels=False,
-)
-
-dataloader = DataLoader(
-    dataset=dataset,
-    batch_size=args.batch_size,
-    shuffle=False,
-    num_workers=args.num_workers,
-    pin_memory=True,
-)
-
 model.eval()
 trainer = pl.Trainer.from_argparse_args(args)
-trainer.callbacks.append(ClassifierPredictionWriter(args.output_dir))
-_ = trainer.predict(model, dataloader)
+trainer.callbacks.append(writer)
+_ = trainer.predict(model, dm)
+
+trainer.training_type_plugin.barrier()
+
+writer.merge_prediction_files(trainer)

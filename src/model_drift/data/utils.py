@@ -64,10 +64,10 @@ def remap_label_list(lbllst, label_map):
 def remap_labels(labels, label_map=None, verbose=False):
 
     if label_map is None:
-        label_map_func = lambda x: x
+        def label_map_func(x): return x
 
     if isinstance(label_map, dict):
-        label_map_func = lambda x: remap_label_list(x, dict(label_map))
+        def label_map_func(x): return remap_label_list(x, dict(label_map))
 
     assert callable(label_map_func), "label_map must be a function, dictionary or None"
 
@@ -161,6 +161,8 @@ def rolling_window_dt_apply(dataframe, func, window='30D', stride='D', min_perio
         return nested2series(preds)
 
     out = {}
-    for i in tqdm_func(tmp_index):
-        out[i] = _apply(i)
+    with tqdm.tqdm(tmp_index, desc=f"{tmp_index.min().date()} - {tmp_index.max().date()}") as pbar:
+        for i in pbar:
+            pbar.set_postfix_str(str(i.date()))
+            out[i] = _apply(i)
     return pd.concat(out, axis=0).unstack(level=0).T

@@ -127,6 +127,7 @@ class ChestXrayDataset(BaseDataset):
     def prepare_data(self):
         # Get all image paths and image labels from dataframe
         if isinstance(self.dataframe_or_csv, six.string_types):
+            print(self.dataframe_or_csv)
             dataframe = pd.read_csv(self.dataframe_or_csv, low_memory=False)
         else:
             dataframe = self.dataframe_or_csv
@@ -164,14 +165,14 @@ class PadChestDataset(BaseDataset):
         else:
             dataframe = self.dataframe_or_csv
 
+        if self.labels is not None:
+            dataframe["binary_label"] = dataframe[self.labels].apply(list, axis=1)
+
         if "Frontal" not in dataframe:
             dataframe["Frontal"] = dataframe["Projection"].isin(["PA", "AP", "AP_horizontal"])
 
         if self.frontal_only:
             dataframe = dataframe[dataframe["Frontal"].astype(bool)]
-
-        if self.labels is not None:
-            dataframe["binary_label"] = dataframe[self.labels].apply(list, axis=1)
 
         for index, row in dataframe.iterrows():
             # Read in image from path

@@ -4,9 +4,8 @@ import torch.nn as nn
 import torch.nn.functional as F
 from PIL import ImageFile
 from azureml.core import Run
-from data.dataset import ChestXrayDataset
-from lib import conv_output_shape, weighted_mean
-from pytorch_lightning.core.lightning import LightningModule
+
+from .base import VisionModuleBase
 from torch.utils.data import DataLoader
 
 ImageFile.LOAD_TRUNCATED_IMAGES = True
@@ -23,17 +22,12 @@ def normal_init(m, mean, std):
 
 
 # Variational Autoencoder
-class VAE(LightningModule):
+class VAE(VisionModuleBase):
     def __init__(
             self,
-            train_csv=None,
-            val_csv=None,
-            data_path=None,
-            batch_size=32,
+            image_dims=(3, 128, 128),
             zsize=8,
-            image_size=128,
             layer_count=3,
-            channels=3,
             width=16,
             #
             num_workers=8,
@@ -49,12 +43,14 @@ class VAE(LightningModule):
             kl_coeff=0.1,
             #
             log_recon_images=16,
+            ignore_nonfrontal_loss=False,
+            #
+            labels=None, params=None
     ):
-        super(VAE, self).__init__()
+        super().__init__(labels=labels, params=params)
 
         self.save_hyperparameters()
 
-        self.batch_size = batch_size
         self.num_workers = num_workers
         self.base_lr = base_lr
         self.weight_decay = weight_decay
@@ -65,12 +61,8 @@ class VAE(LightningModule):
         self.min_lr = min_lr
         self.cooldown = cooldown
 
-        self.run = None
-        self.data_path = data_path
-
-        self.root_folder = self.data_path + os.sep
-
-        h_encoder, w_encoder = image_size, image_size
+        self.image_dims = image_dims
+        channels, h_encoder, w_encoder = image_dims
         self.d = width
         self.zsize = zsize
         self.layer_count = layer_count
@@ -126,12 +118,12 @@ class VAE(LightningModule):
 
         self.image_recon_logger = None
 
-        if log_recon_images > 0:
-            from metrics import ImageReconLogger
+        self.ignore_nonfrontal_loss = ignore_nonfrontal_loss
 
-            self.image_recon_logger = ImageReconLogger(
-                (channels, image_size, image_size), k=log_recon_images
-            )
+        if log_recon_images > 0:
+            from model_drift.metrics import ImageReconLogger
+            self.image_recon_logger = ImageReconLogger(image_dims, k=log_recon_images,
+                                                       ignore_nonfrontal_loss=self.ignore_nonfrontal_loss)
 
     def decode(self, x):
         x = x.view(x.shape[0], self.zsize)
@@ -182,7 +174,6 @@ class VAE(LightningModule):
 
         lr_scheduler = {}
         if self.lr_scheduler == "plateau":
-
             lr_scheduler["scheduler"] = torch.optim.lr_scheduler.ReduceLROnPlateau(
                 optimizer,
                 mode="min",
@@ -203,41 +194,6 @@ class VAE(LightningModule):
 
         return {"optimizer": optimizer, "lr_scheduler": lr_scheduler}
 
-    def train_dataloader(self):
-
-        self.train_dataset = ChestXrayDataset(
-            self.root_folder,
-            self.hparams.train_csv,
-            self.hparams.image_size,
-            True,
-            self.hparams.channels,
-        )
-        return DataLoader(
-            dataset=self.train_dataset,
-            batch_size=self.batch_size,
-            shuffle=True,
-            num_workers=self.num_workers,
-            pin_memory=True,
-        )
-
-    def val_dataloader(self):
-
-        self.val_dataset = ChestXrayDataset(
-            self.root_folder,
-            self.hparams.val_csv,
-            self.hparams.image_size,
-            True,
-            self.hparams.channels,
-        )
-
-        return DataLoader(
-            dataset=self.val_dataset,
-            batch_size=self.batch_size,
-            shuffle=False,
-            num_workers=self.num_workers,
-            pin_memory=True,
-        )
-
     def step(self, images, loss_weights=None):
 
         image_batch_recon, z, p, q, _ = self.forward(images)
@@ -255,7 +211,6 @@ class VAE(LightningModule):
 
         recon_loss = weighted_mean(recon_loss, loss_weights)
         kl = weighted_mean(kl, loss_weights)
-
         loss = kl + recon_loss
 
         log_dict = {"loss": loss, "recon_loss": recon_loss, "kl": kl}
@@ -267,7 +222,8 @@ class VAE(LightningModule):
         )
 
     def training_step(self, image_batch, batch_idx):
-        batch = (image_batch["image"],)
+        batch = image_batch["image"]
+
         loss, logs, image_batch_recon = self.step(batch)
         for log_name, value in logs.items():
             self.log(f"train/{log_name}", value, on_step=True)
@@ -280,7 +236,8 @@ class VAE(LightningModule):
             image_batch["frontal"],
             image_batch["index"],
         )
-        loss, logs, recon = self.step(batch, loss_weights=frontal)
+        lw = frontal if self.ignore_nonfrontal_loss else None
+        loss, logs, recon = self.step(batch, loss_weights=lw)
 
         for log_name, value in logs.items():
             self.log(
@@ -292,7 +249,6 @@ class VAE(LightningModule):
                 batch.detach(),
                 recon.detach(),
                 label.detach(),
-                index.detach(),
                 frontal.detach(),
             )
 
@@ -312,7 +268,7 @@ class VAE(LightningModule):
             self.image_recon_logger.reset()
 
     def on_validation_end(self) -> None:
-        run = Run.get_context()
+
         epoch = (
             f"{self.current_epoch:0>4}"
             if not self.trainer.sanity_checking
@@ -321,15 +277,9 @@ class VAE(LightningModule):
 
         if self.image_recon_logger is not None:
             if 1:
+                run = Run.get_context()
                 out = self.image_recon_logger.compute()
                 grids = out["grids"]
-
-                values = ["index,frontal,mse"]
-                for i, f, l in zip(out["index"], out["frontal"], out["loss"]):
-                    values.append(f"{i:f},{f:f},{l:f}")
-                self.logger.experiment.log_text(
-                    run.id, "\n".join(values), f"{epoch}-values.csv"
-                )
 
                 if not self.trainer.sanity_checking:
                     for k, v in out["metrics"].items():
@@ -346,25 +296,10 @@ class VAE(LightningModule):
                     )
 
     @staticmethod
-    def add_model_args(parser):
+    def add_argparse_args(parser):
 
         group = parser.add_argument_group("module")
-
-        group.add_argument(
-            "--image_size", type=int, dest="image_size", help="Image size", default=128
-        )
-
-        group.add_argument(
-            "--channels",
-            type=int,
-            dest="channels",
-            help="num input channels",
-            default=3,
-        )
-
-        group.add_argument(
-            "--batch_size", type=int, dest="batch_size", help="batch size", default=32
-        )
+        group.add_argument("--image_dims", type=int, dest="image_dims", help="image_dims", default=(1, 128, 128))
         group.add_argument("--z", type=int, dest="zsize", help="zsize", default=8)
         group.add_argument(
             "--layer_count",
@@ -374,29 +309,6 @@ class VAE(LightningModule):
             default=3,
         )
         group.add_argument("--width", type=int, dest="width", help="d", default=16)
-
-        group.add_argument(
-            "--train_csv",
-            type=str,
-            dest="train_csv",
-            help="train csv filename",
-            default="train.csv",
-        )
-        group.add_argument(
-            "--val_csv",
-            type=str,
-            dest="val_csv",
-            help="validation data csv",
-            default="valid.csv",
-        )
-
-        group.add_argument(
-            "--num_workers",
-            type=int,
-            dest="num_workers",
-            help="number of workers for data loacing",
-            default=8,
-        )
 
         group.add_argument(
             "--base_lr",
@@ -464,6 +376,14 @@ class VAE(LightningModule):
         )
 
         group.add_argument(
+            "--ignore_nonfrontal_loss",
+            type=int,
+            dest="ignore_nonfrontal_loss",
+            help="ignore_nonfrontal_loss",
+            default=0,
+        )
+
+        group.add_argument(
             "--log_recon_images",
             type=int,
             dest="log_recon_images",
@@ -472,3 +392,44 @@ class VAE(LightningModule):
         )
 
         return parser
+
+
+def conv_output_shape(h_w, kernel_size=1, stride=1, pad=0, dilation=1):
+    """
+    Utility function for computing output of convolutions
+    takes a tuple of (h,w) and returns a tuple of (h,w)
+    """
+
+    if type(h_w) is not tuple:
+        h_w = (h_w, h_w)
+
+    if type(kernel_size) is not tuple:
+        kernel_size = (kernel_size, kernel_size)
+
+    if type(stride) is not tuple:
+        stride = (stride, stride)
+    if type(pad) is not tuple:
+        pad = (pad, pad)
+    h = (h_w[0] + (2 * pad[0]) - (dilation * (kernel_size[0] - 1)) - 1) // stride[0] + 1
+    w = (h_w[1] + (2 * pad[1]) - (dilation * (kernel_size[1] - 1)) - 1) // stride[1] + 1
+    return h, w
+
+
+def vae_loss(recon_x, x, mu, logvar):
+    # print(x.shape, recon_x.shape)
+    BCE = torch.mean((recon_x - x) ** 2)
+    # see Appendix B from VAE paper:
+    # Kingma and Welling. Auto-Encoding Variational Bayes. ICLR, 2014
+    # https://arxiv.org/abs/1312.6114
+    KLD = -0.5 * torch.mean(torch.mean(1 + logvar - mu.pow(2) - logvar.exp(), 1))
+    return BCE, KLD * 0.1
+
+
+def weighted_mean(values, weights=None):
+    if weights is None:
+        return values.mean()
+    weights = weights.squeeze()
+    values = values.squeeze()
+
+    values *= values
+    return values.sum() / weights.sum()

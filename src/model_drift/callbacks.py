@@ -1,3 +1,5 @@
+import time
+from collections import defaultdict
 import json
 import numpy as np
 import os
@@ -5,8 +7,12 @@ import random
 import torch
 import torchvision
 from PIL import Image
+from pytorch_lightning import Callback
 from pytorch_lightning.callbacks import BasePredictionWriter
 from torch.nn import functional as F
+import tqdm
+from datetime import datetime
+import logging
 
 
 def save_image(im_as_tensor, fn):
@@ -19,7 +25,7 @@ def save_image(im_as_tensor, fn):
     im = np.clip(im, 0, 255 if is_int else 1)
     if not is_int:
         im = im * 255
-    Image.fromarray(im.astype(np.uint8)).save(fn)
+    Image.fromarray(im.astype(np.uint8)).save_info()
 
 
 def make_grid(images, recons, **make_grid_kwargs):
@@ -38,31 +44,80 @@ def make_grid(images, recons, **make_grid_kwargs):
     return grid_im
 
 
-class VAEPredictionWriter(BasePredictionWriter):
+class PredictionWriterBase(BasePredictionWriter):
+    PRED_FILENAME_BASE = "preds"
+    PRED_FILENAME_EXT = "jsonl"
+
+    def __init__(
+            self,
+            output_dir: str,
+            write_interval="batch", ):
+        super().__init__(write_interval=write_interval)
+
+        self.output_dir = output_dir
+        self.counts = [0]
+        self.logger = logging.getLogger(type(self).__name__)
+
+    def on_predict_start(self, trainer, pl_module) -> None:
+        self.counts = [0] * trainer.world_size
+
+    def on_predict_end(self, trainer, pl_module) -> None:
+        trainer.training_type_plugin.barrier()
+        self.logger.info(f"Node: {trainer.global_rank} Complete! Wrote {self.counts[trainer.global_rank]} lines.")
+
+    def get_full_pred_name(self, trainer, global_rank=None):
+        return os.path.join(self.output_dir, self.get_pred_file(trainer, global_rank=global_rank))
+
+    def write_on_epoch_end(self, trainer, pl_module, predictions, batch_indices) -> None:
+        pass
+
+    def write_on_batch_end(self, trainer, pl_module, prediction, batch_indices, batch, batch_idx, dataloader_idx, ):
+        self.counts[trainer.global_rank] += len(batch_indices)
+
+    def get_pred_file(self, trainer, global_rank=None):
+        global_rank = trainer.global_rank if global_rank is None else global_rank
+        return f"{self.PRED_FILENAME_BASE}-{global_rank}.{self.PRED_FILENAME_EXT}"
+
+    def get_pred_all_filenames(self, trainer):
+        return [self.get_full_pred_name(trainer, global_rank=i) for i in range(trainer.world_size)]
+
+    @property
+    def global_pred_filename(self):
+        return f"{self.PRED_FILENAME_BASE}.{self.PRED_FILENAME_EXT}"
+
+    def merge_prediction_files(self, trainer):
+        trainer.training_type_plugin.barrier()
+        if trainer.is_global_zero:
+            counts = defaultdict(int)
+            count = 0
+            fn_out = os.path.join(self.output_dir, self.global_pred_filename)
+            for fn_in in self.get_pred_all_filenames(trainer):
+                with open(fn_in, "r") as f_in, open(fn_out, 'a') as f_out:
+                    for line in tqdm.tqdm(f_in.readlines(), desc=fn_in):
+                        print(line.strip(), file=f_out)
+                        counts[fn_in] += 1
+                        count += 1
+            self.logger.info(f"Wrote {count} predictions to {fn_out}")
+
+            s = "\n".join(f" {k}: {c}" for k, c in counts.items())
+            self.logger.info(f"Line counts:\n{s}")
+
+
+class VAEPredictionWriter(PredictionWriterBase):
+
     def __init__(
             self,
             output_dir: str,
             write_recon=False,
             write_grid=0,
             write_interval="batch",
-            latent_output_dir=None,
     ):
-        super().__init__(write_interval)
-        self.output_dir = output_dir
+        super().__init__(output_dir=output_dir, write_interval=write_interval)
         self.write_recon = write_recon
         self.write_grid = write_grid
-        self.latent_output_dir = latent_output_dir
 
-    def write_on_batch_end(
-            self,
-            trainer,
-            pl_module,
-            prediction,
-            batch_indices,
-            batch,
-            batch_idx,
-            dataloader_idx,
-    ):
+    def write_on_batch_end(self, trainer, pl_module, prediction, batch_indices, batch, batch_idx, dataloader_idx, ):
+        super().write_on_batch_end(trainer, pl_module, prediction, batch_indices, batch, batch_idx, dataloader_idx)
 
         images, index, recon_paths = (
             batch["image"],
@@ -79,15 +134,9 @@ class VAEPredictionWriter(BasePredictionWriter):
         logvar = logvar.cpu().numpy().tolist()
         mse = mse.squeeze().cpu().numpy().tolist()
 
-        fn_name = f"latent-{trainer.global_rank}.jsonl"
         for idx, m, var, err in zip(index, mu, logvar, mse):
             s = json.dumps({"index": idx, "mu": m, "logvar": var, "error": err})
-            with open(f"{self.output_dir}/{fn_name}", "a") as f:
-                print(s, file=f)
-
-            if self.latent_output_dir is None:
-                continue
-            with open(f"{self.latent_output_dir}/{fn_name}", "a") as f:
+            with open(self.get_full_pred_name(trainer), "a") as f:
                 print(s, file=f)
 
         if self.write_grid > 0 and (self.write_grid >= 1 or random.random() <= self.write_grid):
@@ -108,10 +157,7 @@ class VAEPredictionWriter(BasePredictionWriter):
                 )
 
 
-class ClassifierPredictionWriter(BasePredictionWriter):
-    def __init__(self, output_dir: str, write_interval="batch"):
-        super().__init__(write_interval)
-        self.output_dir = output_dir
+class ClassifierPredictionWriter(PredictionWriterBase):
 
     def write_on_batch_end(
             self,
@@ -123,13 +169,42 @@ class ClassifierPredictionWriter(BasePredictionWriter):
             batch_idx,
             dataloader_idx,
     ):
+        super().write_on_batch_end(trainer, pl_module, prediction, batch_indices, batch, batch_idx, dataloader_idx)
         index = batch["index"]
+        labels = batch["label"]
         raw_scores, activations = prediction
-        fn_name = f"scores-{trainer.global_rank}.jsonl"
+        fn_name = self.get_pred_file(trainer)
 
         raw_scores = raw_scores.cpu().numpy().tolist()
         activations = activations.cpu().numpy().tolist()
-        for idx, score, activation in zip(index, raw_scores, activations):
-            s = json.dumps({"index": idx, "score": score, "activation": activation})
-            with open(f"{self.output_dir}/{fn_name}", "a") as f:
+        labels = labels.cpu().numpy().tolist()
+        for idx, score, activation, lbl in zip(index, raw_scores, activations, labels):
+            s = json.dumps({"index": idx, "score": score, "activation": activation, "label": lbl})
+            with open(self.get_full_pred_name(trainer), "a") as f:
                 print(s, file=f)
+
+
+class IOMonitor(Callback):
+    def __init__(self, prefix="train", *args, **kwargs):
+        self.prefix = prefix
+        super().__init__(*args, **kwargs)
+
+    def on_train_epoch_start(self, trainer, module, *args, **kwargs):
+        self.data_time = time.time()
+        self.total_time = time.time()
+
+    def on_train_batch_start(self, trainer, module, *args, **kwargs):
+        elapsed = time.time() - self.data_time
+        module.log(f"{self.prefix}/time.data", elapsed, on_step=True, on_epoch=True)
+
+        self.batch_time = time.time()
+
+    def on_train_batch_end(self, trainer, module, *args, **kwargs):
+        elapsed = time.time() - self.batch_time
+        module.log(f"{self.prefix}/time.batch", elapsed, on_step=True, on_epoch=True)
+
+        elapsed = time.time() - self.total_time
+        module.log(f"{self.prefix}/time.total", elapsed, on_step=True, on_epoch=True)
+
+        self.total_time = time.time()
+        self.data_time = time.time()

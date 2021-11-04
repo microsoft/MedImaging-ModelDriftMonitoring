@@ -17,7 +17,7 @@ def sample_frame(df, day, window='30D'):
 
 class TabularDriftCalculator(object):
     ## TODO: Handle NaNs and Non-numerics
-    def __init__(self, df_ref):
+    def __init__(self, df_ref,):
         self.ref = df_ref
         self.drift_metric_dict = defaultdict(set)
         self._metric_collections = {}
@@ -31,11 +31,19 @@ class TabularDriftCalculator(object):
 
     def prepare(self):
         for col, drift_metric_set in self.drift_metric_dict.items():
-            ref = self.ref[col]
+            ref = self.ref[self.col_to_col(col)]
             self._metric_collections[col] = DriftCollectionCalculator([
                 drift_cls(ref, **dict(kwargs))
                 for drift_cls, kwargs in drift_metric_set
             ])
+
+    def col_to_col(self, col):
+        if isinstance(col, tuple) and col not in self.ref:
+            return list(col)
+        return col
+
+    def _predict_col(self, col, sample):
+        return self._metric_collections[col](sample[self.col_to_col(col)])
 
     def predict(self, sample, cols=None, include_count=True):
         # ASSERT PREPARED
@@ -43,7 +51,7 @@ class TabularDriftCalculator(object):
             cols = [c for c in self._metric_collections.keys() if c in cols]
         else:
             cols = self._metric_collections.keys()
-        out = {col: self._metric_collections[col](sample[col]) for col in cols}
+        out = {col: self._predict_col(col, sample) for col in cols}
         if include_count:
             out['count'] = len(sample)
         return out

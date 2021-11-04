@@ -1,3 +1,11 @@
+import itertools
+import sys
+
+import six
+
+import tqdm
+import json
+import logging
 import os
 import pandas as pd
 from distutils import dir_util
@@ -95,3 +103,43 @@ def get_azure_logger():
     mlf_logger = MLFlowLogger(experiment_name=run.experiment.name, tracking_uri=mlflow_url)
     mlf_logger._run_id = run.id
     return mlf_logger
+
+
+def argsdict2list(d):
+    return list(itertools.chain(*[('--' + k, v) for k, v in d.items()]))
+
+
+def read_jsonl(fn):
+    with open(fn, 'r') as f:
+        return [json.loads(line) for line in f.readlines()]
+
+
+def jsonl_files2dataframe(jsonl_files, converter=None):
+    if isinstance(jsonl_files, six.string_types):
+        jsonl_files = [jsonl_files]
+
+    if converter is None:
+        converter = lambda x: x
+
+    df = []
+    for fn in tqdm.tqdm(jsonl_files):
+        with open(fn, 'r') as f:
+            for line in tqdm.tqdm_notebook(f.readlines()):
+                df.append(converter(json.loads(line)))
+    return pd.json_normalize(df)
+
+
+def basic_logging(level=logging.INFO, output_file=None, fmt='[%(asctime)s] %(levelname)s [%(name)s] %(message)s'):
+    logger = logging.getLogger()
+    logger.setLevel(level)
+    stream_handler = logging.StreamHandler(sys.stdout)
+    formatter = logging.Formatter(fmt)
+    stream_handler.setFormatter(formatter)
+    logger.addHandler(stream_handler)
+
+    if output_file is not None:
+        file_handler = logging.FileHandler(output_file)
+        file_handler.setFormatter(formatter)
+        logger.addHandler(file_handler)
+
+    logger.info("This is the start of logging")

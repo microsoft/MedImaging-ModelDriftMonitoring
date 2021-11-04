@@ -1,12 +1,12 @@
 import torch
 import torch.nn as nn
-from argparse import ArgumentParser, Namespace
+
 from collections import OrderedDict
 from model_drift.data.dataset import PadChestDataset
 from pytorch_lightning.utilities.argparse import from_argparse_args, get_init_arguments_and_types
 from torchmetrics import AUROC, Recall, Specificity, MetricCollection
 from torchvision import models
-from typing import Any, List, Tuple, Union
+
 from .base import VisionModuleBase
 
 
@@ -19,9 +19,9 @@ class CheXFinetune(VisionModuleBase):
             step_size=7,
             gamma=0.1,
             freeze_backbone=False,
-            **kwargs
+            labels=None, params=None
     ):
-        super().__init__(**kwargs)
+        super().__init__(labels=labels, params=params)
         self.learning_rate = learning_rate
         self.step_size = step_size
         self.gamma = gamma
@@ -56,8 +56,8 @@ class CheXFinetune(VisionModuleBase):
         self.val_metrics = MetricCollection(
             [
                 # Accuracy(num_classes=num_classes, average='none'),
-                Recall(num_classes=num_classes, average="none"),
-                Specificity(num_classes=num_classes, average="none"),
+                # Recall(num_classes=num_classes, average="none"),
+                # Specificity(num_classes=num_classes, average="none"),
                 AUROC(num_classes=num_classes, average=None, compute_on_step=False),
             ],
             prefix="val/",
@@ -65,7 +65,6 @@ class CheXFinetune(VisionModuleBase):
         if freeze_backbone:
             for param in self.backbone.features.parameters():
                 param.requires_grad = False
-
 
     def forward(self, images):
         return self.backbone(images)
@@ -176,13 +175,6 @@ class CheXFinetune(VisionModuleBase):
         return parser
 
 
-    @classmethod
-    def from_argparse_args(cls, args: Union[Namespace, ArgumentParser], **kwargs):
-        return from_argparse_args(cls, args, **kwargs)
-
-    @classmethod
-    def get_init_arguments_and_types(cls) -> List[Tuple[str, Tuple, Any]]:
-        return get_init_arguments_and_types(cls)
     # @classmethod
     # def from_argparse_args(cls, args):
     #     kwargs = cls.get_kwargs(args)

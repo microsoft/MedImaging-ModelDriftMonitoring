@@ -7,13 +7,13 @@ from .base import BaseDriftCalculator
 class ChiSqDriftCalculator(BaseDriftCalculator):
     name = "chi2"
 
-    def __init__(self, ref, q_val=0.1, correction=True, lambda_=None):
+    def __init__(self, ref, q_val=0.1, correction=True, lambda_=None, use_freq=False):
         super().__init__(ref)
         self.q_val = q_val
         self.ref_counts = Counter(self.ref)
         self.correction = correction
         self.lambda_ = lambda_
-        self.use_freq = True
+        self.use_freq = use_freq
 
     def predict(self, sample):
         sample_counts = Counter(sample)

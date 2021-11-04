@@ -1,5 +1,6 @@
 from torchvision import transforms
 from pytorch_lightning.utilities.argparse import from_argparse_args, get_init_arguments_and_types
+import warnings
 
 class Transformer(object):
     pass
@@ -14,10 +15,11 @@ class VisionTransformer(Transformer):
 
     @property
     def normalization(self):
-        if self.normalize == True or self.normalize == "imagenet":
-            if not self.channels == 3:
-                raise ValueError("ImageNet normalization requires 3 channels")
-            return [transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])]
+        if self.normalize == "imagenet":
+            if self.channels == 3:
+                return [transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])]
+            else:
+                warnings.warn(f"ImageNet normalization requires 3 channels, but channels was set to {self.channels}, skipping normalization")
         return []
 
     @property
@@ -41,10 +43,14 @@ class VisionTransformer(Transformer):
         group = parser.add_argument_group("transform")
         group.add_argument("--image_size", type=int, dest="image_size", help="image_size", default=320)
         group.add_argument("--channels", type=int, dest="channels", help="channels", default=3)
-        group.add_argument("--normalization", type=str, dest="normalization", help="normalization",
+        group.add_argument("--normalize", type=str, dest="normalize", help="normalize",
                            default="imagenet", )
 
         return parser
+
+    @property
+    def dims(self):
+        return (self.channels, self.image_size, self.image_size)
 
     @classmethod
     def from_argparse_args(cls, args, **kwargs):

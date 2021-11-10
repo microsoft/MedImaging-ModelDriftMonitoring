@@ -161,7 +161,7 @@ def rolling_window_dt_apply(dataframe, func, window='30D', stride='D', min_perio
         return nested2series(preds)
 
     out = {}
-    with tqdm.tqdm(tmp_index, desc=f"{tmp_index.min().date()} - {tmp_index.max().date()}") as pbar:
+    with tqdm.tqdm(tmp_index, desc=f"{tmp_index.min().date()} - {tmp_index.max().date()} window: {window}, stride: {stride}") as pbar:
         for i in pbar:
             pbar.set_postfix_str(str(i.date()))
             out[i] = _apply(i)

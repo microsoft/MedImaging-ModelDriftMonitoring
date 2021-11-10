@@ -119,12 +119,12 @@ def jsonl_files2dataframe(jsonl_files, converter=None):
         jsonl_files = [jsonl_files]
 
     if converter is None:
-        converter = lambda x: x
+        def converter(x): return x
 
     df = []
-    for fn in tqdm.tqdm(jsonl_files):
+    for fn in jsonl_files:
         with open(fn, 'r') as f:
-            for line in tqdm.tqdm_notebook(f.readlines()):
+            for line in tqdm.tqdm(f.readlines()):
                 df.append(converter(json.loads(line)))
     return pd.json_normalize(df)
 

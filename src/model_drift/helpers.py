@@ -1,5 +1,10 @@
+from joblib import Parallel
+from tqdm.auto import tqdm
 import itertools
 import sys
+
+import numpy as np
+from functools import reduce
 
 import six
 
@@ -9,23 +14,24 @@ import logging
 import os
 import pandas as pd
 from distutils import dir_util
+from sklearn.feature_selection import mutual_info_classif
 from . import settings
-from .data.utils import fix_strlst
+# from .data.utils import fix_strlst
 
 
-def read_padchest(csv_file=None) -> pd.DataFrame:
-    csv_file = csv_file or settings.PADCHEST_FILENAME
-    df = pd.read_csv(csv_file, low_memory=False, index_col=0)
-    df["StudyDate"] = pd.to_datetime(df["StudyDate_DICOM"], format="%Y%m%d")
-    df["PatientBirth"] = pd.to_datetime(df["PatientBirth"], format="%Y")
-    df["Labels"] = fix_strlst(df["Labels"])
-    return df
+# def read_padchest(csv_file=None) -> pd.DataFrame:
+#     csv_file = csv_file or settings.PADCHEST_FILENAME
+#     df = pd.read_csv(csv_file, low_memory=False, index_col=0)
+#     df["StudyDate"] = pd.to_datetime(df["StudyDate_DICOM"], format="%Y%m%d")
+#     df["PatientBirth"] = pd.to_datetime(df["PatientBirth"], format="%Y")
+#     df["Labels"] = fix_strlst(df["Labels"])
+#     return df
 
 
-def prepare_padchest(df) -> pd.DataFrame:
-    df["StudyDate"] = pd.to_datetime(df["StudyDate_DICOM"], format="%Y%m%d")
-    df["PatientBirth"] = pd.to_datetime(df["PatientBirth"], format="%Y")
-    return df
+# def prepare_padchest(df) -> pd.DataFrame:
+#     df["StudyDate"] = pd.to_datetime(df["StudyDate_DICOM"], format="%Y%m%d")
+#     df["PatientBirth"] = pd.to_datetime(df["PatientBirth"], format="%Y")
+#     return df
 
 
 def rolling_dt_apply_with_stride(
@@ -143,3 +149,92 @@ def basic_logging(level=logging.INFO, output_file=None, fmt='[%(asctime)s] %(lev
         logger.addHandler(file_handler)
 
     logger.info("This is the start of logging")
+
+
+def merge_frames(*dfs, **join_kwargs):
+    join_kwargs.setdefault('how', "inner")
+    return reduce(lambda df1, df2: df1.join(df2, **join_kwargs), dfs)
+
+
+def column_xs(df, include=None, exclude=None):
+
+    if isinstance(include, six.string_types):
+        include = [include]
+
+    if isinstance(exclude, six.string_types):
+        exclude = [exclude]
+
+    cols = df.columns.tolist()
+    if include is not None:
+        cols = [col for col in cols if any(i in col for i in include)]
+
+    exclude = exclude or []
+    cols = [col for col in cols if not any(e in col for e in exclude)]
+
+    return cols
+
+
+def flatten_index(df, sep='.'):
+    def __flatten_index(c):
+        if isinstance(c, six.string_types):
+            return c
+        return sep.join(c)
+    _df = df.copy()
+    _df.columns = [__flatten_index(col) for col in _df.columns]
+    return _df
+
+
+def align_frames(perf_dataframe, other_dataframe, how='inner', include=None, exclude=None):
+    corr_cols = column_xs(other_dataframe, include=include, exclude=exclude)
+    if isinstance(perf_dataframe, pd.Series):
+        target_col = perf_dataframe.name
+    else:
+        target_col = list(perf_dataframe.columns)[0]
+        perf_dataframe = perf_dataframe[target_col]
+    mdf = other_dataframe[corr_cols].join(perf_dataframe, how=how)
+    return mdf[corr_cols], mdf[target_col]
+
+
+def correlate_performance(perf_dataframe, other_dataframe, **kwargs):
+    X, Y = align_frames(perf_dataframe, other_dataframe, **kwargs)
+    return X.corrwith(Y).rename("correlation")
+
+
+def mutual_info_performance(perf_dataframe, other_dataframe, bins=10, **kwargs):
+    X, Y = align_frames(perf_dataframe, other_dataframe, **kwargs)
+    Y, bins = pd.cut(Y, bins=bins, retbins=True)
+    info_gain = mutual_info_classif(X.values, Y.cat.codes)
+    return pd.Series(info_gain, index=X.columns.tolist(), name="info_gain")
+
+
+def df_standard_scale(idf, nstd=1):
+    stats = idf.agg(["mean", "std"])
+    return (idf-stats.loc['mean'])/(stats.loc["std"])
+
+
+def w_avg(df, weights):
+    cols = df.columns
+    cols = [c for c in weights if c in cols]
+    weights = np.array([weights[c] for c in cols])
+    weights = weights/weights.sum()
+    tmp = df[cols].copy()
+    for c, w in zip(cols, weights):
+        tmp[c] = tmp[c]*w
+    return tmp.sum(axis=1, skipna=False)
+
+
+class ProgressParallel(Parallel):
+    def __init__(self, use_tqdm=True, total=None, *args, **kwargs):
+        self._use_tqdm = use_tqdm
+        self._total = total
+        super().__init__(*args, **kwargs)
+
+    def __call__(self, *args, **kwargs):
+        with tqdm.tqdm(disable=not self._use_tqdm, total=self._total) as self._pbar:
+            return Parallel.__call__(self, *args, **kwargs)
+
+    def print_progress(self):
+        if self._total is None:
+            self._pbar.total = self.n_dispatched_tasks
+        self._pbar.n = self.n_completed_tasks
+        self._pbar.refresh()

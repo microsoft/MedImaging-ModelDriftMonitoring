@@ -72,7 +72,7 @@ class PredictionWriterBase(BasePredictionWriter):
         pass
 
     def write_on_batch_end(self, trainer, pl_module, prediction, batch_indices, batch, batch_idx, dataloader_idx, ):
-        self.counts[trainer.global_rank] += len(batch_indices)
+        self.counts[trainer.global_rank] += len(batch_indices or [])
 
     def get_pred_file(self, trainer, global_rank=None):
         global_rank = trainer.global_rank if global_rank is None else global_rank

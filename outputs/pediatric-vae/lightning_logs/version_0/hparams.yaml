@@ -1,0 +1,109 @@
+base_lr: 0.0001
+cooldown: 0
+gamma: 0.1
+ignore_nonfrontal_loss: 0
+image_dims: &id001 !!python/tuple
+- 1
+- 128
+- 128
+kl_coeff: 0.1
+labels: null
+layer_count: 4
+log_recon_images: 32
+lr_scheduler: plateau
+min_lr: 0
+num_workers: 24
+params:
+  accelerator: ddp
+  accumulate_grad_batches: 1
+  amp_backend: native
+  amp_level: O2
+  auto_lr_find: false
+  auto_scale_batch_size: false
+  auto_select_gpus: false
+  bad_files_yaml: null
+  base_lr: 0.0001
+  batch_size: 128
+  benchmark: false
+  channels: 1
+  check_val_every_n_epoch: 1
+  checkpoint_callback: true
+  cooldown: 0
+  data_folder: /mnt/batch/tasks/shared/LS_root/jobs/mlops_shared/azureml/hd_3314df26-6973-4d82-843d-fbc110f11d17_2/wd/dataset_19963f87-033b-445f-9704-9e3a6f253105
+  dataset: padchest
+  default_root_dir: null
+  deterministic: false
+  devices: null
+  distributed_backend: null
+  fast_dev_run: false
+  flush_logs_every_n_steps: 25
+  frontal_only: 0
+  gamma: 0.1
+  gpus: 4
+  gradient_clip_algorithm: norm
+  gradient_clip_val: 0.0
+  ignore_nonfrontal_loss: 0
+  image_dims: *id001
+  image_size: 128
+  ipus: null
+  kl_coeff: 0.1
+  label_map_yaml: null
+  layer_count: 4
+  limit_predict_batches: 1.0
+  limit_test_batches: 1.0
+  limit_train_batches: 1.0
+  limit_val_batches: 1.0
+  log_every_n_steps: 25
+  log_gpu_memory: null
+  log_recon_images: 32
+  logger: true
+  lr_scheduler: plateau
+  max_epochs: 50
+  max_steps: null
+  max_time: null
+  min_epochs: null
+  min_lr: 0
+  min_steps: null
+  move_metrics_to_cpu: false
+  multiple_trainloader_mode: max_size_cycle
+  normalize: 'False'
+  num_nodes: 1
+  num_processes: 1
+  num_sanity_val_steps: 2
+  num_workers: 24
+  output_dir: ./outputs
+  overfit_batches: 0.0
+  plugins: null
+  precision: 32
+  prepare_data_per_node: true
+  process_position: 0
+  profiler: null
+  progress_bar_refresh_rate: 25
+  reload_dataloaders_every_epoch: false
+  reload_dataloaders_every_n_epochs: 0
+  replace_sampler_ddp: true
+  resume_from_checkpoint: null
+  run_azure: 1
+  split_dates: !!python/tuple
+  - '2012-01-01'
+  - '2013-01-01'
+  step_size: 3
+  stochastic_weight_avg: false
+  sync_batchnorm: false
+  terminate_on_nan: true
+  test_frontal_only: null
+  tpu_cores: null
+  track_grad_norm: -1
+  train_frontal_only: null
+  truncated_bptt_steps: null
+  val_check_interval: 1.0
+  val_frontal_only: 0
+  weight_decay: 1.0e-05
+  weights_save_path: null
+  weights_summary: top
+  width: 240
+  zsize: 128
+step_size: 3
+weight_decay: 1.0e-05
+width: 240
+zsize: 128

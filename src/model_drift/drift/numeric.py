@@ -13,9 +13,9 @@ class KSDriftCalculator(BaseDriftCalculator):
         self.q_val = q_val
         self.alternative = alternative
         self.mode = mode
-        self.average=average
+        self.average = average
 
-    def predict(self, sample):
+    def _predict(self, sample):
         # sample = np.stack(sample.values
 
         nref = len(self.ref)
@@ -40,7 +40,7 @@ class KSDriftCalculator(BaseDriftCalculator):
 class BasicDriftCalculator(BaseDriftCalculator):
     name = "stats"
 
-    def predict(self, sample):
+    def _predict(self, sample):
 
         sample = pd.to_numeric(sample, errors="coerce")
         return {"mean": np.mean(sample),

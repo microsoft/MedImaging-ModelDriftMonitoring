@@ -15,7 +15,7 @@ class ChiSqDriftCalculator(BaseDriftCalculator):
         self.lambda_ = lambda_
         self.use_freq = use_freq
 
-    def predict(self, sample):
+    def _predict(self, sample):
         sample_counts = Counter(sample)
         keys = set().union(self.ref_counts, sample_counts)
         exp = np.array([self.ref_counts.get(k, 0) for k in keys])

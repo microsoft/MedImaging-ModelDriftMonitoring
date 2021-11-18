@@ -1,4 +1,6 @@
 import pandas as pd
+import numpy as np
+from model_drift.data.utils import nested2series
 import tqdm
 from collections import defaultdict
 from model_drift.data.utils import nested2series, rolling_window_dt_apply
@@ -16,7 +18,7 @@ def sample_frame(df, day, window='30D'):
 
 
 class TabularDriftCalculator(object):
-    ## TODO: Handle NaNs and Non-numerics
+    # TODO: Handle NaNs and Non-numerics
     def __init__(self, df_ref,):
         self.ref = df_ref
         self.drift_metric_dict = defaultdict(set)
@@ -43,9 +45,9 @@ class TabularDriftCalculator(object):
         return col
 
     def _predict_col(self, col, sample):
-        return self._metric_collections[col](sample[self.col_to_col(col)])
+        return self._metric_collections[col].predict(sample[self.col_to_col(col)])
 
-    def predict(self, sample, cols=None, include_count=True):
+    def _predict(self, sample, cols=None, include_count=True):
         # ASSERT PREPARED
         if cols is not None:
             cols = [c for c in self._metric_collections.keys() if c in cols]
@@ -55,6 +57,26 @@ class TabularDriftCalculator(object):
         if include_count:
             out['count'] = len(sample)
         return out
+
+    def predict(self, sample, include_count=True, sampler=None, n_samples=1, stratify=None, agg=('mean', 'std'), min_periods=None):
+
+        if sampler is None:
+            return self._predict(sample, include_count=include_count)
+
+        index = np.array(range(len(sample)))
+        sample_ix = list(sampler.sample_iterator(index, n_samples=n_samples, stratify=stratify))
+        samples = {i: nested2series(self._predict(sample.iloc[ix])) for i, ix in enumerate(sample_ix)}
+
+        if n_samples == 1:
+            return samples[0]
+
+        obs = nested2series(self._predict(sample, include_count=include_count))
+
+        if agg is None:
+            samples["obs"] = obs
+            return pd.concat(samples, axis=1)
+
+        return pd.concat(samples, axis=1).agg(agg, axis=1).join(obs.rename('obs')).stack()
 
     def drilldown(self, df, dates, cols=None, window='30D', include_ref=True):
 
@@ -70,5 +92,9 @@ class TabularDriftCalculator(object):
         data = pd.concat(out + list(samples.values())).reset_index()
         return stats, data
 
-    def rolling_window_predict(self, dataframe, **kwargs):
-        return rolling_window_dt_apply(dataframe, lambda x: self.predict(x, include_count=False), **kwargs)
+    def rolling_window_predict(self, dataframe, sampler=None, n_samples=1, stratify=None, agg=('mean', 'std'), **kwargs):
+        kwargs["include_count"] = False
+        return rolling_window_dt_apply(dataframe, lambda x: self.predict(x, include_count=True,
+                                                                         sampler=sampler, n_samples=n_samples,
+                                                                         stratify=stratify, agg=('mean', 'std')),
+                                       **kwargs)

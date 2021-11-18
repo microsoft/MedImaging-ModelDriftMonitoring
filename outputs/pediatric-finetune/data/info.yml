@@ -1,0 +1,24 @@
+batch_size: 64
+dataset_len:
+  test: 624
+  train: 5232
+  val: 624
+label:
+- Atelectasis
+- Cardiomegaly
+- Consolidation
+- Edema
+- Lesion
+- No Finding
+- Opacity
+- Pleural Abnormalities
+- Pleural Effusion
+- Pneumonia
+num_workers: 8
+output_dir: /home/arjunsoin/project/MedImaging-ModelDriftMonitoring/outputs/finetune
+test_kwargs:
+  frontal_only: false
+train_kwargs:
+  frontal_only: false
+val_kwargs:
+  frontal_only: false

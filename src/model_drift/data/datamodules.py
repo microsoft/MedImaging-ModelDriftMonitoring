@@ -6,6 +6,7 @@ import yaml
 from model_drift import settings
 from model_drift.data.padchest import PadChest, LABEL_MAP, BAD_FILES
 from model_drift.data.dataset import ChestXrayDataset
+from model_drift.data.dataset import PediatricChestXrayDataset
 from torch.utils.data import DataLoader
 
 
@@ -186,6 +187,80 @@ class CheXpertDataModule(BaseDatamodule):
         self.test_dataset = []
         self.predict_dataset = []
 
+class PediatricCheXpertDataModule(BaseDatamodule):
+
+    def __init__(self,
+                 data_folder,
+                 transforms=None,
+                 train_transforms=None,
+                 test_transforms=None,
+                 batch_size=32,
+                 num_workers=-1,
+                 train_kwargs=None,
+                 test_kwargs=None,
+                 output_dir='./',
+                 ):
+        super().__init__(data_folder,
+                         transforms=transforms,
+                         train_transforms=train_transforms,
+                         test_transforms=test_transforms,
+                         batch_size=batch_size,
+                         num_workers=num_workers,
+                         train_kwargs=train_kwargs,
+                         test_kwargs=test_kwargs,
+                         output_dir=output_dir,)
+
+    def load_datasets(self, stage=None) -> None:
+        self.train = pd.read_csv(os.path.join(self.data_folder, 'train_image_data.csv'), low_memory=False)
+
+        self.train_dataset = PediatricChestXrayDataset(
+            self.data_folder,
+            self.train,
+            transform=self.train_transforms,
+        )
+
+        # No validation set
+        self.val = pd.read_csv(os.path.join(self.data_folder, 'test_image_data.csv'), low_memory=False)
+        self.val_dataset = PediatricChestXrayDataset(
+            self.data_folder,
+            self.val,
+            transform=self.test_transforms,
+        )
+
+        self.test = pd.read_csv(os.path.join(self.data_folder, 'test_image_data.csv'), low_memory=False)
+        self.test_dataset = PediatricChestXrayDataset(
+            self.data_folder,
+            self.test,
+            transform=self.test_transforms,
+        )
+
+        self.predict_dataset = PediatricChestXrayDataset(
+            self.data_folder,
+            self.train,
+            transform=self.train_transforms,
+        )
+
+    @property
+    def labels(self):
+        # Proxy, not needed for VAE
+        return list(LABEL_MAP)
+
+    def predict_dataloader(self):
+        if not len(self.predict_dataset):
+            return None
+        return DataLoader(
+            self.predict_dataset,
+            shuffle=False,
+            batch_size=self.batch_size,
+            num_workers=self.num_workers,
+            pin_memory=True,
+        )
+
+    @classmethod
+    def add_argparse_args(cls, parser, **kwargs):
+        parser = super().add_argparse_args(parser, **kwargs)
+        group = parser.add_argument_group("pediatric")
+        return parser
 
 class PadChestDataModule(BaseDatamodule):
 

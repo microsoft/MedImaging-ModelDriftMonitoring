@@ -37,7 +37,7 @@ class AUROCCalculator(BaseDriftCalculator):
         self.score_col = score_col
         self.average = average
 
-    def predict(self, sample):
+    def _predict(self, sample):
         labels = sample.iloc[:, 1] if self.label_col is None else sample[self.label_col]
         scores = sample.iloc[:, 0] if self.score_col is None else sample[self.score_col]
         labels = np.stack(labels.values)

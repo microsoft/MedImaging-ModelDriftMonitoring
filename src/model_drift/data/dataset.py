@@ -150,6 +150,35 @@ class ChestXrayDataset(BaseDataset):
             self.image_index.append(row.Path)
             self.recon_image_path.append(row.Path.partition("CheXpert-v1.0/")[2])
 
+class PediatricChestXrayDataset(BaseDataset):
+    def prepare_data(self):
+        # Get all image paths and image labels from dataframe
+        if isinstance(self.dataframe_or_csv, six.string_types):
+            # print(self.dataframe_or_csv)
+            dataframe = pd.read_csv(self.dataframe_or_csv, low_memory=False)
+        else:
+            dataframe = self.dataframe_or_csv
+        
+        for _, row in dataframe.iterrows():
+            # Read in image from path
+            image_path = os.path.join(
+                self.image_dir or self.folder_dir,
+                row.Path.partition("Pediatric_Chest_X-ray_Pneumonia/")[2],
+            )
+            self.image_paths.append(image_path)
+
+            labels = []
+            # Labels come from column after path
+            for col in row[1:]:
+                if col == 1:
+                    labels.append(1)
+                else:
+                    labels.append(0)
+            self.image_labels.append(labels)
+            self.frontal.append(1.0)
+            self.image_index.append(row.Path)
+            self.recon_image_path.append(row.Path.partition("Pediatric_Chest_X-ray_Pneumonia/")[2])
+
 
 class PadChestDataset(BaseDataset):
 

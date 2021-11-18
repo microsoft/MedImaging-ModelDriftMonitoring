@@ -5,7 +5,8 @@ import pandas as pd
 import tqdm
 from sklearn.preprocessing import MultiLabelBinarizer
 
-tqdm_func = tqdm.tqdm
+from joblib import delayed
+from model_drift.helpers import ProgressParallel as Parallel
 
 
 def fix_strlst(series, clean=True):
@@ -140,7 +141,7 @@ def nested2tuplekeys(out):
     return out2
 
 
-def rolling_window_dt_apply(dataframe, func, window='30D', stride='D', min_periods=1):
+def rolling_window_dt_apply(dataframe, func, window='30D', stride='D', min_periods=1, include_count=True, n_jobs=1, verbose=0, backend='loky'):
     if not isinstance(dataframe.index, pd.DatetimeIndex):
         raise ValueError()
 
@@ -157,12 +158,23 @@ def rolling_window_dt_apply(dataframe, func, window='30D', stride='D', min_perio
         if len(x) < min_periods:
             return None
         preds = func(x)
-        preds["count"] = len(x)
+        if include_count:
+            preds["window_count"] = len(x)
         return nested2series(preds)
 
-    out = {}
-    with tqdm.tqdm(tmp_index, desc=f"{tmp_index.min().date()} - {tmp_index.max().date()} window: {window}, stride: {stride}") as pbar:
-        for i in pbar:
-            pbar.set_postfix_str(str(i.date()))
-            out[i] = _apply(i)
+    if n_jobs > 1:
+        def job(i):
+            return (i, _apply(i))
+
+        out = dict(Parallel(n_jobs=n_jobs,
+                            verbose=verbose,
+                            backend=backend, total=len(tmp_index))(
+            delayed(job)(i) for i in tmp_index))
+
+    else:
+        out = {}
+        with tqdm.tqdm(tmp_index, desc=f"{tmp_index.min().date()} - {tmp_index.max().date()} window: {window}, stride: {stride}") as pbar:
+            for i in pbar:
+                pbar.set_postfix_str(str(i.date()))
+                out[i] = _apply(i)
     return pd.concat(out, axis=0).unstack(level=0).T

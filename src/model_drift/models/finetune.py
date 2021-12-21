@@ -37,14 +37,21 @@ class CheXFinetune(VisionModuleBase):
 
             new_state_dict = OrderedDict()
             pretrained = torch.load(pretrained)
-            for k, v in pretrained["model_state"].items():
-                if k[:13] == "module.model.":
-                    name = k[13:]  # remove `module.model`
-                else:
-                    name = k
-                new_state_dict[name] = v
-            pretrained["model_state"] = new_state_dict
-            model.load_state_dict(pretrained["model_state"])
+            
+            if "model_state" in pretrained:
+                state_key = "model_state"
+                prefixes = ["module.model."]
+            elif "state_dict" in pretrained:
+                state_key = "state_dict"
+                prefixes = ['model.model.', "model."]
+                
+            for k, v in pretrained[state_key].items():
+                for prefix in prefixes:
+                    if k.startswith(prefix):
+                        k = k[len(prefix):]# remove prefix
+                        break
+                new_state_dict[k] = v
+            model.load_state_dict(new_state_dict)
 
         # Add new last layer for fine-tuning
         num_ftrs = model.classifier.in_features
@@ -155,7 +162,7 @@ class CheXFinetune(VisionModuleBase):
         group = parser.add_argument_group("module")
         group.add_argument(
             "--pretrained", type=str, dest="pretrained", help="model to fine tune from",
-            default="iter_662400.pth.tar", )
+            default=None, )
         group.add_argument(
             "--num_classes", type=int, dest="num_classes", help="number of output classes", default=10, )
 

@@ -25,7 +25,7 @@ def save_image(im_as_tensor, fn):
     im = np.clip(im, 0, 255 if is_int else 1)
     if not is_int:
         im = im * 255
-    Image.fromarray(im.astype(np.uint8)).save_info()
+    Image.fromarray(im.astype(np.uint8)).save(fn)
 
 
 def make_grid(images, recons, **make_grid_kwargs):
@@ -149,11 +149,7 @@ class VAEPredictionWriter(PredictionWriterBase):
             for recon_path, recon, image in zip(recon_paths, image_recons, images):
                 save_image(
                     recon,
-                    os.path.join(self.output_dir, "images", "recon", recon_path),
-                )
-                save_image(
-                    image,
-                    os.path.join(self.output_dir, "images", "inputs", recon_path),
+                    os.path.join(self.output_dir, "recon", recon_path),
                 )
 
 

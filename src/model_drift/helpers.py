@@ -7,7 +7,8 @@ import numpy as np
 from functools import reduce
 
 import six
-
+from collections.abc import Iterator
+import random
 import tqdm
 import json
 import logging
@@ -16,6 +17,7 @@ import pandas as pd
 from distutils import dir_util
 from sklearn.feature_selection import mutual_info_classif
 from . import settings
+
 # from .data.utils import fix_strlst
 
 
@@ -69,7 +71,7 @@ def copytree(src, dst):
 
 
 def modelpath2name(model_path):
-    return model_path.replace('/', '-')
+    return model_path.replace('/', '-').replace('=', "-")
 
 
 def print_env():
@@ -77,6 +79,12 @@ def print_env():
     for k, v in sorted(os.environ.items()):
         print(f" {k}={v}")
     print("--------------------")
+
+
+def get_run_name():
+    from azureml.core import Run
+    run = Run.get_context()
+    return run.display_name
 
 
 def download_model_azure(model_path, output_dir="./outputs/", local_path_env_var='_LOCAL_MODEL_PATH_'):
@@ -120,7 +128,7 @@ def read_jsonl(fn):
         return [json.loads(line) for line in f.readlines()]
 
 
-def jsonl_files2dataframe(jsonl_files, converter=None):
+def jsonl_files2dataframe(jsonl_files, converter=None, refresh_rate=None, **kwargs):
     if isinstance(jsonl_files, six.string_types):
         jsonl_files = [jsonl_files]
 
@@ -130,7 +138,10 @@ def jsonl_files2dataframe(jsonl_files, converter=None):
     df = []
     for fn in jsonl_files:
         with open(fn, 'r') as f:
-            for line in tqdm.tqdm(f.readlines()):
+            lines = f.readlines()
+            if refresh_rate is not None:
+                kwargs['miniters'] = int(len(lines)*refresh_rate)
+            for line in tqdm.tqdm(lines, **kwargs):
                 df.append(converter(json.loads(line)))
     return pd.json_normalize(df)
 
@@ -224,17 +235,58 @@ def w_avg(df, weights):
 
 
 class ProgressParallel(Parallel):
-    def __init__(self, use_tqdm=True, total=None, *args, **kwargs):
+    def __init__(self, use_tqdm=True, total=None, tqdm_kwargs=None, *args, **kwargs):
         self._use_tqdm = use_tqdm
         self._total = total
+        self.tqdm_kwargs = tqdm_kwargs or {}
+        self.miniters = tqdm_kwargs.get('miniters', None)
         super().__init__(*args, **kwargs)
 
     def __call__(self, *args, **kwargs):
-        with tqdm.tqdm(disable=not self._use_tqdm, total=self._total) as self._pbar:
+        with tqdm.tqdm(disable=not self._use_tqdm, total=self._total,
+                       **self.tqdm_kwargs) as self._pbar:
             return Parallel.__call__(self, *args, **kwargs)
+
+    def do_refresh(self):
+        if self.miniters is None:
+            return True
+        return (self.n_completed_tasks == self.n_dispatched_tasks or 
+                (self.n_completed_tasks % self.miniters == 0))
 
     def print_progress(self):
         if self._total is None:
             self._pbar.total = self.n_dispatched_tasks
-        self._pbar.n = self.n_completed_tasks
-        self._pbar.refresh()
+
+        if self.do_refresh():
+            self._pbar.n = self.n_completed_tasks
+            self._pbar.refresh()
+
+
+class CycleList(Iterator):
+    def  __init__(self, lst, shuffle=False):
+        self.lst = lst
+        self.index = list(range(len(lst)))
+        self.shuffle = shuffle
+        self.reset()
+        
+    def reset(self):
+        self.cur = 0
+        if self.shuffle:
+            random.shuffle(self.index)
+        
+    def get_curr(self):
+        return self.lst[self.index[self.cur]]    
+
+    def __next__(self):
+        if self.cur >= len(self.lst):
+            self.reset()
+        v = self.get_curr()
+        self.cur += 1
+        return v
+        
+    def __iter__(self):
+        while True:
+            yield self.__next__()
+            
+    def take(self, n):
+        return [next(self) for i in range(n)]

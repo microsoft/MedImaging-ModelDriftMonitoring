@@ -13,9 +13,11 @@ SRC_DIR = env.path("SRC", default=str(TOP_DIR.joinpath("src")))
 
 AZUREML_CONFIG = env.path("AZUREML_CONFIG", default=str(TOP_DIR))
 
+PADCHEST_CSV_FILENAME = "PADCHEST_chest_x_ray_images_labels_160K_01.02.19.csv"
+
 PADCHEST_FILENAME = env.str(
     "PADCHEST_FILENAME",
-    default=str(DATA_DIR.joinpath("PADCHEST_chest_x_ray_images_labels_160K_01.02.19.csv")),
+    default=str(DATA_DIR.joinpath(PADCHEST_CSV_FILENAME)),
 )
 
 CHEXPERT_TRAIN_CSV = env.str(
@@ -34,7 +36,7 @@ CONDA_ENVIRONMENT_FILE = CHEXPERT_VALID_CSV = env.str(
 )
 
 
-PADCHEST_SPLIT_DATES = env.list("PADCHEST_SPLIT_DATES", "2012-01-01, 2013-01-01")
+PADCHEST_SPLIT_DATES = env.list("PADCHEST_SPLIT_DATES", "2013-01-01, 2014-01-01")
 env.str(
     "CONDA_ENVIRONMENT_FILE",
     default=str(TOP_DIR.joinpath("environment.yml")),

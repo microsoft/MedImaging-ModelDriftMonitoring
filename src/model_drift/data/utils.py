@@ -64,6 +64,11 @@ def remap_label_list(lbllst, label_map):
 
 def remap_labels(labels, label_map=None, verbose=False):
 
+    # fix label map so it can be used on itself
+    # for k in label_map:
+    #     if k not in label_map[k]:
+    #         label_map[k].append(k)
+
     if label_map is None:
         def label_map_func(x): return x
 
@@ -83,7 +88,7 @@ def remap_labels(labels, label_map=None, verbose=False):
 
 
 def split_on_date(df, splits, col="StudyDate"):
-    splits = pd.to_datetime(["2014-01-01", "2013-01-01"]).sort_values()
+    splits = pd.to_datetime(splits).sort_values()
     rem = df
     for split in splits:
         curr, rem = rem[rem[col] < split], rem[rem[col] >= split]
@@ -141,7 +146,7 @@ def nested2tuplekeys(out):
     return out2
 
 
-def rolling_window_dt_apply(dataframe, func, window='30D', stride='D', min_periods=1, include_count=True, n_jobs=1, verbose=0, backend='loky'):
+def rolling_window_dt_apply(dataframe, func, window='30D', stride='D', min_periods=1, include_count=True, n_jobs=1, verbose=0, backend='loky', refresh_rate=None, **kwargs):
     if not isinstance(dataframe.index, pd.DatetimeIndex):
         raise ValueError()
 
@@ -162,18 +167,21 @@ def rolling_window_dt_apply(dataframe, func, window='30D', stride='D', min_perio
             preds["window_count"] = len(x)
         return nested2series(preds)
 
+    kwargs['desc'] =f"{tmp_index.min().date()} - {tmp_index.max().date()} window: {window}, stride: {stride}"
+    if refresh_rate is not None:
+        kwargs['miniters'] = max(int(len(tmp_index)*refresh_rate), 1)
     if n_jobs > 1:
         def job(i):
             return (i, _apply(i))
 
         out = dict(Parallel(n_jobs=n_jobs,
                             verbose=verbose,
-                            backend=backend, total=len(tmp_index))(
+                            backend=backend, total=len(tmp_index), tqdm_kwargs = kwargs)(
             delayed(job)(i) for i in tmp_index))
 
     else:
         out = {}
-        with tqdm.tqdm(tmp_index, desc=f"{tmp_index.min().date()} - {tmp_index.max().date()} window: {window}, stride: {stride}") as pbar:
+        with tqdm.tqdm(tmp_index, **kwargs) as pbar:
             for i in pbar:
                 pbar.set_postfix_str(str(i.date()))
                 out[i] = _apply(i)

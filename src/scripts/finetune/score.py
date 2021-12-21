@@ -20,6 +20,12 @@ from model_drift.data.datamodules import PediatricCheXpertDataModule
 from model_drift.callbacks import ClassifierPredictionWriter
 from model_drift.data.transform import VisionTransformer
 
+# Add your data module here. Two examples are: 
+data_modules = {
+    "padchest": PadChestDataModule,
+    "peds": PediatricCheXpertDataModule,
+}
+
 helpers.basic_logging()
 
 ddp_model_check_key = "_LOCAL_MODEL_PATH_"
@@ -45,9 +51,10 @@ parser.add_argument("--model", type=str, dest="model", help="path to model or re
 parser.add_argument("--run_azure", type=int, dest="run_azure", help="run in AzureML", default=0)
 parser.add_argument("--output_dir", type=str, dest="output_dir", help="output_dir", default="outputs")
 
-# Add your dataloader here. Two examples are:
-# parser = PadChestDataModule.add_argparse_args(parser)
-parser = PediatricCheXpertDataModule.add_argparse_args(parser)
+parser.add_argument("--dataset", type=str, dest="dataset", help="dataset", choices=list(data_modules), default='padchest')
+temp_args, _ = parser.parse_known_args()
+dm_cls = data_modules[temp_args.dataset]
+parser = dm_cls.add_argparse_args(parser)
 parser = pl.Trainer.add_argparse_args(parser)
 
 args = parser.parse_args()
@@ -64,9 +71,7 @@ args.default_root_dir = args.output_dir
 
 model = CheXFinetune.load_from_checkpoint(args.model, pretrained=None)
 transformer = VisionTransformer.from_argparse_args(Namespace(), **model.hparams.params)
-# Add your data module here. Two examples are: 
-# dm = PadChestDataModule.from_argparse_args(args, transforms=transformer.train_transform)
-dm = PediatricCheXpertDataModule.from_argparse_args(args, transforms=transformer.train_transform)
+dm = dm_cls.from_argparse_args(args, transforms=transformer.train_transform)
 writer = ClassifierPredictionWriter(args.output_dir)
 
 if args.num_workers < 0:

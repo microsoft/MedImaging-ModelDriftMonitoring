@@ -172,6 +172,7 @@ class PadChest(ModelDriftData):
     @classmethod
     def splits(cls, csv_file=None, studydate_index=False, split_dates=None, **init_kwargs):
         split_dates = split_dates or settings.PADCHEST_SPLIT_DATES
+        print(split_dates)
         assert len(split_dates) == 2
         parent = cls.from_csv(csv_file, **init_kwargs)
         return parent.split(split_dates, studydate_index=studydate_index)

@@ -20,10 +20,13 @@ class ModelDriftData(object):
             df = self.read_csv(df)
         self.df = df
         self.label_map = label_map
+        self.is_prepared = False
 
     def prepare(self):
-        self.remap_labels()
-        self.label_list_to_khot()
+        if not self.is_prepared:
+            self.remap_labels()
+            self.label_list_to_khot()
+            self.is_prepared = True
 
     def remap_labels(self, col=None):
         col = col or self.LABEL_COL

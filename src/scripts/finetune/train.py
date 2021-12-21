@@ -92,7 +92,8 @@ trainer.callbacks.append(IOMonitor())
 
 
 if args.run_azure:
-    args.pretrained = download_model_azure(args.pretrained, args.output_dir)
+    if args.pretrained:
+        args.pretrained = download_model_azure(args.pretrained, args.output_dir)
     trainer.logger = get_azure_logger()
 
 transformer = VisionTransformer.from_argparse_args(args)

@@ -23,42 +23,57 @@ class TabularDriftCalculator(object):
         self.ref = df_ref
         self.drift_metric_dict = defaultdict(set)
         self._metric_collections = {}
+        self.name_to_cols = dict()
+        self.squeeze = dict()
 
     def auto_add_drift_calculators(self):
         pass
 
-    def add_drift_stat(self, col, drift_cls, **drift_kwargs):
+    def add_drift_stat(self, name, drift_cls, col=None, include_stat_name=True, **drift_kwargs):
+        col = col or name
         item = (drift_cls, tuple(sorted(drift_kwargs.items())))
-        self.drift_metric_dict[col].add(item)
+        self.drift_metric_dict[name].add(item)
+        self.name_to_cols[name] = col
+        self.squeeze[name] = not include_stat_name
 
     def prepare(self):
-        for col, drift_metric_set in self.drift_metric_dict.items():
+        for name, drift_metric_set in self.drift_metric_dict.items():
+            col = self.name_to_cols[name]
             ref = self.ref[self.col_to_col(col)]
-            self._metric_collections[col] = DriftCollectionCalculator([
-                drift_cls(ref, **dict(kwargs))
-                for drift_cls, kwargs in drift_metric_set
-            ])
+            if self.squeeze[name] and len(drift_metric_set) < 2:
+                drift_cls, kwargs = list(drift_metric_set)[0]
+                self._metric_collections[name] = drift_cls(ref, **dict(kwargs))
+            else:
+                self._metric_collections[name] = DriftCollectionCalculator([
+                    drift_cls(ref, **dict(kwargs))
+                    for drift_cls, kwargs in drift_metric_set
+                ])
 
     def col_to_col(self, col):
         if isinstance(col, tuple) and col not in self.ref:
             return list(col)
         return col
 
-    def _predict_col(self, col, sample):
-        return self._metric_collections[col].predict(sample[self.col_to_col(col)])
+    def _predict_col(self, name, sample):
+        col = self.name_to_cols[name]
+        try:
+            return self._metric_collections[name].predict(sample[self.col_to_col(col)])
+        except:
+            print(f"Failed on {name}")
+            raise
 
-    def _predict(self, sample, cols=None, include_count=True):
+    def _predict(self, sample, names=None, include_count=True):
         # ASSERT PREPARED
-        if cols is not None:
-            cols = [c for c in self._metric_collections.keys() if c in cols]
+        if names is not None:
+            names = [c for c in self._metric_collections.keys() if c in names]
         else:
-            cols = self._metric_collections.keys()
-        out = {col: self._predict_col(col, sample) for col in cols}
+            names = self._metric_collections.keys()
+        out = {name: self._predict_col(name, sample) for name in names}
         if include_count:
             out['count'] = len(sample)
         return out
 
-    def predict(self, sample, include_count=True, sampler=None, n_samples=1, stratify=None, agg=('mean', 'std'), min_periods=None):
+    def predict(self, sample, include_count=True, sampler=None, n_samples=1, stratify=None, agg=('mean', 'std')):
 
         if sampler is None:
             return self._predict(sample, include_count=include_count)
@@ -92,9 +107,9 @@ class TabularDriftCalculator(object):
         data = pd.concat(out + list(samples.values())).reset_index()
         return stats, data
 
-    def rolling_window_predict(self, dataframe, sampler=None, n_samples=1, stratify=None, agg=('mean', 'std'), **kwargs):
+    def rolling_window_predict(self, dataframe, sampler=None, n_samples=1, stratify=None, agg=('mean', 'std', 'median'), **kwargs):
         kwargs["include_count"] = False
         return rolling_window_dt_apply(dataframe, lambda x: self.predict(x, include_count=True,
                                                                          sampler=sampler, n_samples=n_samples,
-                                                                         stratify=stratify, agg=('mean', 'std')),
+                                                                         stratify=stratify, agg=agg),
                                        **kwargs)

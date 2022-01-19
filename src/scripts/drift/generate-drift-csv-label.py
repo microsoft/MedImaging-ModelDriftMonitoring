@@ -1,5 +1,6 @@
 
 import os
+import json
 from pathlib import Path
 
 library_path = str(Path(__file__).parent.parent.parent)
@@ -28,9 +29,9 @@ from IPython.display import display
 import argparse
 from argparse import Namespace
 
-def create_ood_dataframe(outside_data, pct, counts, start_date=None, end_date=None):
+def create_ood_dataframe(outside_data, pct, counts, start_date=None, end_date=None, shuffle=False):
     
-    print(counts.index.min(), counts.index.max())
+    # print(counts.index.min(), counts.index.max())
     if start_date is None:
         start_date = counts.index.min()
     
@@ -38,7 +39,7 @@ def create_ood_dataframe(outside_data, pct, counts, start_date=None, end_date=No
         end_date = counts.index.max()
         
     inject_index = pd.date_range(start_date, end_date, freq='D')
-    cl = helpers.CycleList(outside_data.index)
+    cl = helpers.CycleList(outside_data.index, shuffle=shuffle)
     new_df = {}
     counts = (counts*pct).apply(np.round).reindex(inject_index).fillna(0).astype(int)
     for new_ix, count in counts.items():
@@ -53,9 +54,6 @@ print("~-"*10)
 print("~-"*10)
 
 print("Pandas Version:", pd.__version__)
-
-
-
 
 
 parser = argparse.ArgumentParser()
@@ -77,22 +75,26 @@ parser.add_argument("--ref_frontal_only", type=int, default=1)
 
 parser.add_argument("--include_metadata", type=int, default=True)
 
-parser.add_argument("--nonfrontal_add_date", type=str, default=None)
-parser.add_argument("--frontal_remove_date", type=str, default=None)
-
-parser.add_argument("--peds_weight", type=float, default=0)
-parser.add_argument("--peds_start_date", type=str, default=None)
-parser.add_argument("--peds_end_date", type=str, default=None)
-
+# parser.add_argument("--label_mod_ref", type=str, default="No Finding")
+parser.add_argument("--label_modifiers", type=str, default=None, 
+                    help="json str of {label1:[pct, start_date, end_date], ....")
 
 parser.add_argument("--replacement", type=int, default=1)
 parser.add_argument("--sample_size", type=int, default=1000)
 parser.add_argument("--n_samples", type=int, default=20)
 
+parser.add_argument("--start_date", type=str, default=None)
+parser.add_argument("--end_date", type=str, default=None)
+parser.add_argument("--mod_end_date", type=str, default=None)
+parser.add_argument("--randomize_start_date", type=str, default=None)
+parser.add_argument("--randomize_end_date", type=str, default=None)
+
 parser.add_argument("--generate_name", type=int, default=0)
 
 parser.add_argument("--num_workers", type=int, default=-1)
 parser.add_argument("--dbg", type=int, default=0)
+
+# parser.add_argument("--start_date")
 
 
 args = parser.parse_args()
@@ -166,19 +168,6 @@ pc.merge(scores_df, left_on="ImageID", right_on="index", how='inner')
 
 train, val, test = pc.split(settings.PADCHEST_SPLIT_DATES, studydate_index=True)
 
-
-# Display
-pd.concat(
-    {
-        "all": pc.df["StudyDate"].describe(datetime_is_numeric=True),
-        "train": train.df["StudyDate"].describe(datetime_is_numeric=True),
-        "val": val.df["StudyDate"].describe(datetime_is_numeric=True),
-        "test": test.df["StudyDate"].describe(datetime_is_numeric=True),
-    },
-    axis=1,
-)
-
-
 calculators = {
     "FLOAT": [KSDriftCalculator],
     "CAT": [ChiSqDriftCalculator],
@@ -231,54 +220,51 @@ dwc.add_drift_stat('performance', ClassificationReportCalculator, col=(
     "score", "label"), target_names=tuple(LABEL_MAP), include_stat_name=False)
 
 dwc.prepare()
+label_mods = {}
+if args.label_modifiers is not None:
+    label_mods = json.loads(args.label_modifiers)
 
-target_df = pc.df.set_index('StudyDate')
-if args.dbg:
-    target_df = target_df.loc["2012-01-01": "2013-12-31"]
+# normal_until_date = arg.
 
-frontals_target_df = target_df.query("Frontal").copy()
-if args.frontal_remove_date:
-    frontals_target_df = frontals_target_df.loc[:args.frontal_remove_date]
-targets = {"pc-frontal": frontals_target_df.assign(in_distro=True)}
+target_df = pc.df.query("Frontal").set_index('StudyDate').assign(in_distro=True)
 
-print("in_distro target_dates", frontals_target_df.index.min(), frontals_target_df.index.max())
+counts = target_df.groupby(target_df.index.date).count().iloc[:,0]
+targets = {}
 
-if args.nonfrontal_add_date is not None:
-    nonfrontals_target_df = target_df.query("~Frontal").copy()
-    nonfrontals_target_df = nonfrontals_target_df.loc[args.nonfrontal_add_date:]
-    targets['pc-nonfrontal'] = nonfrontals_target_df.assign(in_distro=False)
+max_date = counts.index.max()
+normal_until_date = min(max_date, 
+                        pd.to_datetime(args.randomize_start_date or max_date),
+                        pd.to_datetime(args.randomize_end_date or max_date))
+for label, (pct, start_date, end_date) in label_mods.items():
+    normal_until_date = min(pd.to_datetime(start_date or max_date), 
+                            pd.to_datetime(end_date or max_date), 
+                            normal_until_date)
 
 
-if args.peds_weight:
+
+normal_until_date = str(normal_until_date.date())
+print("normal until date:", normal_until_date)
+
+targets["no-mod"] = target_df.loc[:normal_until_date].assign(inject="No")
+extradata = target_df.loc[normal_until_date:].reset_index().rename(columns={"StudyDate": "OriginalStudyDate"})
+
+if args.mod_end_date:
+    extradata = extradata.loc[:args.mod_end_date]
+
+for label, (pct, start_date, end_date) in label_mods.items():
+    inject_data = extradata[extradata[label] > 0]
+    targets[label] = create_ood_dataframe(inject_data, pct, counts, 
+                                          start_date=start_date, end_date=end_date or max_date,
+                                          shuffle=True)
+    targets[label].assign(inject=label)
     
-    counts = frontals_target_df.groupby(frontals_target_df.index.date).count().iloc[:,0]
+if args.randomize_start_date:
+    targets["random"] = create_ood_dataframe(extradata, 1.0, counts, 
+                                          start_date=args.randomize_start_date, end_date=args.randomize_end_date or max_date,
+                                          shuffle=True)
     
-    # load peds classifier data
-    jsonl_file = str(input_path.joinpath('outside-data', "pediatric-classifier-chxfrnt-preds.jsonl"))
-    peds_scores_df = helpers.jsonl_files2dataframe(jsonl_file, desc="reading peds score results", refresh_rate=.1)
-    peds_scores_df = pd.concat(
-        [
-            peds_scores_df,
-            pd.DataFrame(peds_scores_df['activation'].values.tolist(), columns=[f"activation.{c}" for c in label_cols])
-        ],
-        axis=1)
     
-    # vae data
-    jsonl_file = str(input_path.joinpath('outside-data', "pediatric-vae-preds.jsonl"))
-    peds_vae_df = helpers.jsonl_files2dataframe(jsonl_file, desc="reading peds VAE results", refresh_rate=.1)
-    peds_vae_df = pd.concat(
-        [
-            peds_vae_df,
-            pd.DataFrame(peds_vae_df['mu'].values.tolist(), columns=[f"mu.{c:0>3}" for c in range(128)])
-        ],
-        axis=1
-    )
-    peds_data = peds_scores_df.set_index('index').join(peds_vae_df.set_index('index'))
-    
-    w = args.peds_weight/(1-args.peds_weight)
-    peds_data = create_ood_dataframe(peds_data, w, counts, start_date=args.peds_start_date, end_date=args.peds_end_date)
-    targets['peds'] = peds_data.assign(in_distro=False)
-    
+     
 print("Cleaning fixing types")
 converters = {
     "FLOAT": lambda x: pd.to_numeric(x, errors="coerce"),
@@ -290,12 +276,28 @@ for col, TYPE in cols.items():
     target_df[c] = converters[TYPE](target_df[c])
 
 target_df = pd.concat(targets.values(), sort=True)
-avg = target_df.groupby(target_df.index.date)['in_distro'].mean().mean()
-print("overall", str(target_df.index.min()), str(target_df.index.max()), avg)
-for name, xdf in targets.items():
-    avg = target_df.groupby(target_df.index.date)['in_distro'].mean().reindex(xdf.index.unique()).mean()
-    print(name, str(xdf.index.min()), str(xdf.index.max()), avg)
 
+avgs = ', '.join("{}: {:.0%}".format(l, p) 
+                 for l, p in target_df.groupby(target_df.index.date)[label_cols].mean().mean(axis=0).items())
+print("overall", str(target_df.index.min().date()), str(target_df.index.max().date()), "\n *", avgs, "\n")
+
+avgs = ', '.join("{}: {:.0%}".format(l, p) 
+                 for l, p in ref_df.groupby(ref_df.index.date)[label_cols].mean().mean(axis=0).items())
+print("ref", str(ref_df.index.min().date()), str(ref_df.index.max().date()), "\n *", avgs, "\n")
+
+for name, xdf in targets.items():
+    # avg = target_df.groupby(target_df.index.date)['in_distro'].mean().reindex(xdf.index.unique()).mean()
+    avgs = ', '.join("{}: {:.2%}".format(l, p) 
+                 for l, p in target_df.groupby(target_df.index.date)[label_cols].mean()
+                 .reindex(xdf.index.unique()).mean(axis=0).items())
+    print(name, str(xdf.index.min().date()), str(xdf.index.max().date()))
+    print(" *", avgs)
+    avgs = ', '.join("{}: {:.2%}".format(l, p) 
+                 for l, p in xdf.groupby(xdf.index.date)[label_cols].mean().mean(axis=0).items())
+    print(" *", avgs)
+
+if args.dbg:
+    target_df = target_df.loc["2012-11-01":"2015-03-01"]
 
 # Output target_df and ref_df
 reproduce_path  = output_path.joinpath('data')
@@ -303,6 +305,17 @@ reproduce_path.mkdir(parents=True, exist_ok=True)
     
 ref_df.to_csv(str(reproduce_path.joinpath('ref.csv')))
 target_df.to_csv(str(reproduce_path.joinpath('target.csv')))
+
+if args.run_azure:
+    import matplotlib.pylab as plt
+    from azureml.core import Run
+    run = Run.get_context()
+
+    fig, ax = plt.subplots(figsize=(10,8))
+    target_df.groupby(target_df.index.date)[label_cols].mean().rolling(30).mean().plot(ax=ax)
+    fig.savefig(str(reproduce_path.joinpath('target-fig.png')))
+
+
 
 print("starting drift experiment!")
 output = dwc.rolling_window_predict(target_df,

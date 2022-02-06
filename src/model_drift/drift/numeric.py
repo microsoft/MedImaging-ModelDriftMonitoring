@@ -20,11 +20,15 @@ class KSDriftCalculator(BaseDriftCalculator):
 
         nref = len(self.ref)
         nobs = len(sample)
-        # assert self.ref.shape[samplee[1]
-        outs = []
+        
+        sample = pd.to_numeric(sample, errors='coerce').astype(float)
         out = {}
-        out["distance"], out['pval'] = ks_2samp(self.ref, sample, alternative=self.alternative,
-                                                mode=self.mode)
+        try:
+            out["distance"], out['pval'] = ks_2samp(self.ref, sample, alternative=self.alternative,
+                                                    mode=self.mode)
+        except TypeError:
+            out["distance"], out['pval'] = float("NaN"), float("NaN")
+        
         out['critical_value'] = self.calc_critical_value(nref, nobs, self.q_val)
         out['critical_diff'] = out["distance"] - out['critical_value']
 

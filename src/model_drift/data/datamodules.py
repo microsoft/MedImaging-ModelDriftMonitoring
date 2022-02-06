@@ -5,8 +5,7 @@ import pytorch_lightning as pl
 import yaml
 from model_drift import settings
 from model_drift.data.padchest import PadChest, LABEL_MAP, BAD_FILES
-from model_drift.data.dataset import ChestXrayDataset
-from model_drift.data.dataset import PediatricChestXrayDataset
+from model_drift.data.dataset import ChestXrayDataset, PediatricChestXrayDataset, MIDRCDataset
 from torch.utils.data import DataLoader
 
 
@@ -389,3 +388,77 @@ class PadChestDataModule(BaseDatamodule):
             "--bad_files_yaml", type=str, dest="bad_files_yaml", help="yaml file with bad files", default=None)
 
         return parser
+
+
+class MIDRCDataModule(BaseDatamodule):
+
+    __dataset_cls__ = MIDRCDataset
+
+    def __init__(self,
+                 data_folder,
+                 transforms=None,
+                 train_transforms=None,
+                 test_transforms=None,
+                 batch_size=32,
+                 num_workers=-1,
+                 train_kwargs=None,
+                 test_kwargs=None,
+                 output_dir='./',
+                 ):
+        super().__init__(data_folder,
+                         transforms=transforms,
+                         train_transforms=train_transforms,
+                         test_transforms=test_transforms,
+                         batch_size=batch_size,
+                         num_workers=num_workers,
+                         train_kwargs=train_kwargs,
+                         test_kwargs=test_kwargs,
+                         output_dir=output_dir,)
+
+    def load_datasets(self, stage=None) -> None:
+        dataframe = pd.read_csv(os.path.join(self.data_folder, ), index_col=0)
+
+        # all one dataset for now
+        self.train = self.val = self.test = dataframe
+        
+        self.train_dataset = self.__dataset_cls__(
+            self.data_folder,
+            self.train,
+            transform=self.train_transforms,
+            labels=self.labels
+        )
+
+        self.val_dataset = self.__dataset_cls__(
+            self.data_folder,
+            self.val,
+            transform=self.test_transforms,
+            labels=self.labels
+        )
+        self.test_dataset = self.__dataset_cls__(
+            self.data_folder,
+            self.test,
+            transform=self.test_transforms,
+            labels=self.labels
+        )
+
+        self.predict_dataset = self.__dataset_cls__(
+            self.data_folder,
+            self.train,
+            transform=self.train_transforms,
+            labels=self.labels
+        )
+
+    @property
+    def labels(self):
+        return list(LABEL_MAP)
+
+    def predict_dataloader(self):
+        if not len(self.predict_dataset):
+            return None
+        return DataLoader(
+            self.predict_dataset,
+            shuffle=False,
+            batch_size=self.batch_size,
+            num_workers=self.num_workers,
+            pin_memory=True,
+        )

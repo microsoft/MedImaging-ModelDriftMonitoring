@@ -214,3 +214,30 @@ class PadChestDataset(BaseDataset):
             self.image_labels.append(labels)
             self.image_index.append(row["ImageID"])
             self.recon_image_path.append(image_path)
+
+
+class MIDRCDataset(BaseDataset):
+    def prepare_data(self):
+        # Get all image paths and image labels from dataframe
+        if isinstance(self.dataframe_or_csv, six.string_types):
+            print(self.dataframe_or_csv)
+            dataframe = pd.read_csv(self.dataframe_or_csv, low_memory=False)
+        else:
+            dataframe = self.dataframe_or_csv
+
+        dataframe["Frontal"] = True
+        if self.frontal_only:
+            dataframe = dataframe[dataframe["Frontal"].astype(bool)]
+
+        for _, row in dataframe.iterrows():
+            # Read in image from path
+            image_path = os.path.join(
+                self.image_dir or self.folder_dir, 'png',
+                row['ImageId'][:-3]+'png',
+            )
+            self.image_paths.append(image_path)
+            labels = row[self.labels].astype(int).tolist()
+            self.frontal.append(float(row["Frontal"]))
+            self.image_labels.append(labels)
+            self.image_index.append(row['ImageId'][:-3]+'png')
+            self.recon_image_path.append(row['ImageId'][:-3]+'png')

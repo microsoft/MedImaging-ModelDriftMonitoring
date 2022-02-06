@@ -15,8 +15,7 @@ if library_path not in PYPATH:
 
 from model_drift import helpers
 from model_drift.models.finetune import CheXFinetune
-from model_drift.data.datamodules import PadChestDataModule
-from model_drift.data.datamodules import PediatricCheXpertDataModule
+from model_drift.data.datamodules import PadChestDataModule, PediatricCheXpertDataModule, MIDRCDataModule
 from model_drift.callbacks import ClassifierPredictionWriter
 from model_drift.data.transform import VisionTransformer
 
@@ -24,6 +23,7 @@ from model_drift.data.transform import VisionTransformer
 data_modules = {
     "padchest": PadChestDataModule,
     "peds": PediatricCheXpertDataModule,
+    "midrc": MIDRCDataModule
 }
 
 helpers.basic_logging()

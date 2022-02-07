@@ -1,6 +1,7 @@
-from torchvision import transforms
-from pytorch_lightning.utilities.argparse import from_argparse_args, get_init_arguments_and_types
 import warnings
+from pytorch_lightning.utilities.argparse import from_argparse_args
+from torchvision import transforms
+
 
 class Transformer(object):
     pass
@@ -19,7 +20,8 @@ class VisionTransformer(Transformer):
             if self.channels == 3:
                 return [transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])]
             else:
-                warnings.warn(f"ImageNet normalization requires 3 channels, but channels was set to {self.channels}, skipping normalization")
+                warnings.warn(
+                    "ImageNet normalization requires 3 channels, skipping normalization")
         return []
 
     @property

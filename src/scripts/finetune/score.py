@@ -1,11 +1,9 @@
-from pathlib import Path
 import argparse
 import os
 import pytorch_lightning as pl
 import torch
-import itertools
-import tqdm
 from argparse import Namespace
+from pathlib import Path
 
 library_path = str(Path(__file__).parent.parent.parent)
 PYPATH = os.environ.get("PYTHONPATH", "").split(":")
@@ -19,7 +17,7 @@ from model_drift.data.datamodules import PadChestDataModule, PediatricCheXpertDa
 from model_drift.callbacks import ClassifierPredictionWriter
 from model_drift.data.transform import VisionTransformer
 
-# Add your data module here. Two examples are: 
+# Add your data module here. Two examples are:
 data_modules = {
     "padchest": PadChestDataModule,
     "peds": PediatricCheXpertDataModule,
@@ -51,7 +49,8 @@ parser.add_argument("--model", type=str, dest="model", help="path to model or re
 parser.add_argument("--run_azure", type=int, dest="run_azure", help="run in AzureML", default=0)
 parser.add_argument("--output_dir", type=str, dest="output_dir", help="output_dir", default="outputs")
 
-parser.add_argument("--dataset", type=str, dest="dataset", help="dataset", choices=list(data_modules), default='padchest')
+parser.add_argument("--dataset", type=str, dest="dataset", help="dataset", choices=list(data_modules),
+                    default='padchest')
 temp_args, _ = parser.parse_known_args()
 dm_cls = data_modules[temp_args.dataset]
 parser = dm_cls.add_argparse_args(parser)

@@ -1,9 +1,7 @@
 import copy
-import os
 import pandas as pd
 import six
-import yaml
-from .utils import remap_labels, binarize_label, split_on_date
+from .utils import remap_labels, binarize_label
 
 
 class ModelDriftData(object):

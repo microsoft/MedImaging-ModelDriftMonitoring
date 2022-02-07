@@ -1,16 +1,9 @@
-from model_drift.data.transform import VisionTransformer
-from model_drift.callbacks import VAEPredictionWriter
-from model_drift.data.datamodules import PadChestDataModule
-from model_drift.models.vae import VAE
-from model_drift import helpers
-from pathlib import Path
 import argparse
 import os
 import pytorch_lightning as pl
 import torch
-import itertools
-import tqdm
 from argparse import Namespace
+from pathlib import Path
 
 library_path = str(Path(__file__).parent.parent.parent)
 PYPATH = os.environ.get("PYTHONPATH", "").split(":")
@@ -24,12 +17,12 @@ from model_drift.data.datamodules import PadChestDataModule, PediatricCheXpertDa
 from model_drift.callbacks import VAEPredictionWriter
 from model_drift.data.transform import VisionTransformer
 
-# Add your data module here. Two examples are: 
+# Add your data module here. Two examples are:
 data_modules = {
     "padchest": PadChestDataModule,
     "peds": PediatricCheXpertDataModule,
     "midrc": MIDRCDataModule,
-    }
+}
 
 helpers.basic_logging()
 
@@ -58,7 +51,8 @@ parser.add_argument("--output_dir", type=str, dest="output_dir", help="output_di
 parser.add_argument("--add_name_to_output", type=int, dest="add_name_to_output", help="output_dir", default=0)
 parser.add_argument("--write_recon", type=int, dest="write_recon", help="write_recon", default=0)
 
-parser.add_argument("--dataset", type=str, dest="dataset", help="dataset", choices=list(data_modules), default='padchest')
+parser.add_argument("--dataset", type=str, dest="dataset",
+                    help="dataset", choices=list(data_modules), default='padchest')
 temp_args, _ = parser.parse_known_args()
 dm_cls = data_modules[temp_args.dataset]
 parser = dm_cls.add_argparse_args(parser)

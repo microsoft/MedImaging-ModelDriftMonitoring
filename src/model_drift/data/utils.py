@@ -3,10 +3,9 @@ import itertools
 import ast
 import pandas as pd
 import tqdm
-from sklearn.preprocessing import MultiLabelBinarizer
-
 from joblib import delayed
 from model_drift.helpers import ProgressParallel as Parallel
+from sklearn.preprocessing import MultiLabelBinarizer
 
 
 def fix_strlst(series, clean=True):
@@ -63,7 +62,6 @@ def remap_label_list(lbllst, label_map):
 
 
 def remap_labels(labels, label_map=None, verbose=False):
-
     # fix label map so it can be used on itself
     # for k in label_map:
     #     if k not in label_map[k]:
@@ -73,7 +71,7 @@ def remap_labels(labels, label_map=None, verbose=False):
         def label_map_func(x): return x
 
     if isinstance(label_map, dict):
-        def label_map_func(x): return remap_label_list(x, dict(label_map))
+        def label_map_func(x): return remap_label_list(x, dict(label_map))  # noqa
 
     assert callable(label_map_func), "label_map must be a function, dictionary or None"
 
@@ -146,7 +144,8 @@ def nested2tuplekeys(out):
     return out2
 
 
-def rolling_window_dt_apply(dataframe, func, window='30D', stride='D', min_periods=1, include_count=True, n_jobs=1, verbose=0, backend='loky', refresh_rate=None, **kwargs):
+def rolling_window_dt_apply(dataframe, func, window='30D', stride='D', min_periods=1, include_count=True, n_jobs=1,
+                            verbose=0, backend='loky', refresh_rate=None, **kwargs):
     if not isinstance(dataframe.index, pd.DatetimeIndex):
         raise ValueError()
 
@@ -167,16 +166,16 @@ def rolling_window_dt_apply(dataframe, func, window='30D', stride='D', min_perio
             preds["window_count"] = len(x)
         return nested2series(preds)
 
-    kwargs['desc'] =f"{tmp_index.min().date()} - {tmp_index.max().date()} window: {window}, stride: {stride}"
+    kwargs['desc'] = f"{tmp_index.min().date()} - {tmp_index.max().date()} window: {window}, stride: {stride}"
     if refresh_rate is not None:
-        kwargs['miniters'] = max(int(len(tmp_index)*refresh_rate), 1)
+        kwargs['miniters'] = max(int(len(tmp_index) * refresh_rate), 1)
     if n_jobs > 1:
         def job(i):
             return (i, _apply(i))
 
         out = dict(Parallel(n_jobs=n_jobs,
                             verbose=verbose,
-                            backend=backend, total=len(tmp_index), tqdm_kwargs = kwargs)(
+                            backend=backend, total=len(tmp_index), tqdm_kwargs=kwargs)(
             delayed(job)(i) for i in tmp_index))
 
     else:

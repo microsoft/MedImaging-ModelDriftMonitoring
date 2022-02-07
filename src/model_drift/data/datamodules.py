@@ -4,8 +4,8 @@ import pandas as pd
 import pytorch_lightning as pl
 import yaml
 from model_drift import settings
-from model_drift.data.padchest import PadChest, LABEL_MAP, BAD_FILES
 from model_drift.data.dataset import ChestXrayDataset, PediatricChestXrayDataset, MIDRCDataset
+from model_drift.data.padchest import PadChest, LABEL_MAP, BAD_FILES
 from torch.utils.data import DataLoader
 
 
@@ -14,7 +14,7 @@ def _split_dates(s):
         return tuple(settings.PADCHEST_SPLIT_DATES)
     try:
         return tuple([ss.strip() for ss in s.split(",")])
-    except:
+    except BaseException:
         raise argparse.ArgumentTypeError("Dates must be date1,date2")
 
 
@@ -186,6 +186,7 @@ class CheXpertDataModule(BaseDatamodule):
         self.test_dataset = []
         self.predict_dataset = []
 
+
 class PediatricCheXpertDataModule(BaseDatamodule):
 
     def __init__(self,
@@ -207,7 +208,7 @@ class PediatricCheXpertDataModule(BaseDatamodule):
                          num_workers=num_workers,
                          train_kwargs=train_kwargs,
                          test_kwargs=test_kwargs,
-                         output_dir=output_dir,)
+                         output_dir=output_dir, )
 
     def load_datasets(self, stage=None) -> None:
         self.train = pd.read_csv(os.path.join(self.data_folder, 'train_image_data.csv'), low_memory=False)
@@ -258,8 +259,8 @@ class PediatricCheXpertDataModule(BaseDatamodule):
     @classmethod
     def add_argparse_args(cls, parser, **kwargs):
         parser = super().add_argparse_args(parser, **kwargs)
-        group = parser.add_argument_group("pediatric")
         return parser
+
 
 class PadChestDataModule(BaseDatamodule):
 
@@ -337,7 +338,6 @@ class PadChestDataModule(BaseDatamodule):
         super().save_datasets(output_dir)
         self.parent.to_csv(os.path.join(output_dir, "all.csv"))
 
-
     def load_datasets(self, stage=None) -> None:
         self.parent = PadChest(self.csv_file, label_map=self.label_map, bad_files=self.bad_files)
         self.train, self.val, self.test = self.parent.split(self.split_dates)
@@ -391,7 +391,6 @@ class PadChestDataModule(BaseDatamodule):
 
 
 class MIDRCDataModule(BaseDatamodule):
-
     __dataset_cls__ = MIDRCDataset
 
     def __init__(self,
@@ -413,14 +412,14 @@ class MIDRCDataModule(BaseDatamodule):
                          num_workers=num_workers,
                          train_kwargs=train_kwargs,
                          test_kwargs=test_kwargs,
-                         output_dir=output_dir,)
+                         output_dir=output_dir, )
 
     def load_datasets(self, stage=None) -> None:
         dataframe = pd.read_csv(os.path.join(self.data_folder, ), index_col=0)
 
         # all one dataset for now
         self.train = self.val = self.test = dataframe
-        
+
         self.train_dataset = self.__dataset_cls__(
             self.data_folder,
             self.train,

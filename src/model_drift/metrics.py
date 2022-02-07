@@ -2,6 +2,7 @@ import torch
 import torchvision
 from torch.nn import functional as F
 from torchmetrics import Metric
+from torchvision import utils
 
 
 def make_grid(images, recons, **make_grid_kwargs):
@@ -16,16 +17,13 @@ def make_grid(images, recons, **make_grid_kwargs):
     grid_im = torch.empty(stack_size).cpu()
     grid_im[::2, ...] = images.cpu()
     grid_im[1::2, ...] = recons.cpu()
-    grid_im = (
-        torchvision.utils.make_grid(grid_im, **make_grid_kwargs)
-            .numpy()
-            .transpose(1, 2, 0)
-    )
+    grid_im = (utils.make_grid(grid_im, **make_grid_kwargs)
+               .numpy()
+               .transpose(1, 2, 0))
     return grid_im
 
 
 class ImageReconLogger(Metric):
-
 
     def get_image_shape(self, batch_size=0):
         return [batch_size] + list(self.img_shape)

@@ -2,9 +2,7 @@ import torch
 import torch.nn as nn
 
 from collections import OrderedDict
-from model_drift.data.dataset import PadChestDataset
-from pytorch_lightning.utilities.argparse import from_argparse_args, get_init_arguments_and_types
-from torchmetrics import AUROC, Recall, Specificity, MetricCollection
+from torchmetrics import AUROC, MetricCollection
 from torchvision import models
 
 from .base import VisionModuleBase
@@ -37,18 +35,18 @@ class CheXFinetune(VisionModuleBase):
 
             new_state_dict = OrderedDict()
             pretrained = torch.load(pretrained)
-            
+
             if "model_state" in pretrained:
                 state_key = "model_state"
                 prefixes = ["module.model."]
             elif "state_dict" in pretrained:
                 state_key = "state_dict"
                 prefixes = ['model.model.', "model."]
-                
+
             for k, v in pretrained[state_key].items():
                 for prefix in prefixes:
                     if k.startswith(prefix):
-                        k = k[len(prefix):]# remove prefix
+                        k = k[len(prefix):]  # remove prefix
                         break
                 new_state_dict[k] = v
             model.load_state_dict(new_state_dict)
@@ -180,7 +178,6 @@ class CheXFinetune(VisionModuleBase):
                            help="step_size for lr schedulers, if reduce on plateau, this value is used for 'patience'",
                            default=7, )
         return parser
-
 
     # @classmethod
     # def from_argparse_args(cls, args):

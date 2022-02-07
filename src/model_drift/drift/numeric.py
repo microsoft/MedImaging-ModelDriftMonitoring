@@ -20,7 +20,7 @@ class KSDriftCalculator(BaseDriftCalculator):
 
         nref = len(self.ref)
         nobs = len(sample)
-        
+
         sample = pd.to_numeric(sample, errors='coerce').astype(float)
         out = {}
         try:
@@ -28,7 +28,7 @@ class KSDriftCalculator(BaseDriftCalculator):
                                                     mode=self.mode)
         except TypeError:
             out["distance"], out['pval'] = float("NaN"), float("NaN")
-        
+
         out['critical_value'] = self.calc_critical_value(nref, nobs, self.q_val)
         out['critical_diff'] = out["distance"] - out['critical_value']
 
@@ -45,7 +45,6 @@ class BasicDriftCalculator(BaseDriftCalculator):
     name = "stats"
 
     def _predict(self, sample):
-
         sample = pd.to_numeric(sample, errors="coerce")
         return {"mean": np.mean(sample),
                 "std": np.std(sample),

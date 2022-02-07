@@ -155,7 +155,6 @@ if args.num_workers < 0:
 def add_arg_tags(args):
     from azureml.core import Run
     run = Run.get_context()
-    d = vars(args)
     for k, v in vars(args):
         run.tag(k, v)
 
@@ -287,7 +286,6 @@ all_frontals = target_df.query("Frontal").copy()
 if args.frontal_remove_date:
     frontals_target_df = frontals_target_df.loc[:args.frontal_remove_date]
 
-
 targets = {"pc-frontal": frontals_target_df.assign(in_distro=True)}
 
 print("in_distro target_dates", frontals_target_df.index.min(), frontals_target_df.index.max())
@@ -328,7 +326,7 @@ if args.peds_weight:
         w = args.peds_weight
     peds_data = create_ood_dataframe(peds_data, w, counts, start_date=args.peds_start_date, end_date=args.peds_end_date,
                                      shuffle=True)
-    
+
     for c in label_cols:
         if c not in peds_data:
             peds_data[c] = 0
@@ -411,18 +409,18 @@ if args.start_date or args.end_date:
     target_df = target_df.loc[args.start_date: args.end_date]
 
 avg = target_df.groupby(target_df.index.date)['in_distro'].mean().mean()
-avgs = ', '.join("{}: {:.2%}".format(l, p)
-                 for l, p in target_df.groupby(target_df.index.date)[label_cols].mean().mean(axis=0).items())
+avgs = ', '.join("{}: {:.2%}".format(lab, p)
+                 for lab, p in target_df.groupby(target_df.index.date)[label_cols].mean().mean(axis=0).items())
 
 print("overall", str(target_df.index.min()), str(target_df.index.max()), avg)
 print(" *", avgs, "\n")
 for name, xdf in targets.items():
     avg = target_df.groupby(target_df.index.date)['in_distro'].mean().reindex(xdf.index.unique()).mean()
-    avgs = ', '.join("{}: {:.2%}".format(l, p)
-                     for l, p in target_df.groupby(target_df.index.date)[label_cols].mean()
+    avgs = ', '.join("{}: {:.2%}".format(lab, p)
+                     for lab, p in target_df.groupby(target_df.index.date)[label_cols].mean()
                      .reindex(xdf.index.unique()).mean(axis=0).items())
-    avgs1 = ', '.join("{}: {:.2%}".format(l, p)
-                      for l, p in xdf.groupby(xdf.index.date)[label_cols].mean().mean(axis=0).items())
+    avgs1 = ', '.join("{}: {:.2%}".format(lab, p)
+                      for lab, p in xdf.groupby(xdf.index.date)[label_cols].mean().mean(axis=0).items())
     print(name, str(xdf.index.min()), str(xdf.index.max()), avg)
     print(" *|", avgs, )
     print(" *", avgs1, "\n")

@@ -1,6 +1,5 @@
-import pandas as pd
 import numpy as np
-from model_drift.data.utils import nested2series
+import pandas as pd
 import tqdm
 from collections import defaultdict
 from model_drift.data.utils import nested2series, rolling_window_dt_apply
@@ -19,7 +18,7 @@ def sample_frame(df, day, window='30D'):
 
 class TabularDriftCalculator(object):
     # TODO: Handle NaNs and Non-numerics
-    def __init__(self, df_ref,):
+    def __init__(self, df_ref, ):
         self.ref = df_ref
         self.drift_metric_dict = defaultdict(set)
         self._metric_collections = {}
@@ -58,7 +57,7 @@ class TabularDriftCalculator(object):
         col = self.name_to_cols[name]
         try:
             return self._metric_collections[name].predict(sample[self.col_to_col(col)])
-        except:
+        except:  # noqa
             print(f"Failed on {name}")
             raise
 
@@ -107,7 +106,8 @@ class TabularDriftCalculator(object):
         data = pd.concat(out + list(samples.values())).reset_index()
         return stats, data
 
-    def rolling_window_predict(self, dataframe, sampler=None, n_samples=1, stratify=None, agg=('mean', 'std', 'median'), **kwargs):
+    def rolling_window_predict(self, dataframe, sampler=None, n_samples=1, stratify=None, agg=('mean', 'std', 'median'),
+                               **kwargs):
         kwargs["include_count"] = False
         return rolling_window_dt_apply(dataframe, lambda x: self.predict(x, include_count=True,
                                                                          sampler=sampler, n_samples=n_samples,

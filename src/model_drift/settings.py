@@ -35,7 +35,6 @@ CONDA_ENVIRONMENT_FILE = CHEXPERT_VALID_CSV = env.str(
     default=str(TOP_DIR.joinpath("environment.yml")),
 )
 
-
 PADCHEST_SPLIT_DATES = env.list("PADCHEST_SPLIT_DATES", "2013-01-01, 2014-01-01")
 env.str(
     "CONDA_ENVIRONMENT_FILE",

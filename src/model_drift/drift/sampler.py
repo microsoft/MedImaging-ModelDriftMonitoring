@@ -1,5 +1,5 @@
-from sklearn.utils import resample
 import numpy as np
+from sklearn.utils import resample
 
 
 class Sampler(object):
@@ -11,7 +11,8 @@ class Sampler(object):
     def sample_index(self, index, stratify=None):
         if not self.replacement and len(index) < self.sample_size:
             return np.array(index)
-        return resample(index, n_samples=self.sample_size, replace=self.replacement, random_state=self.random_state, stratify=stratify)
+        return resample(index, n_samples=self.sample_size, replace=self.replacement, random_state=self.random_state,
+                        stratify=stratify)
 
     def sample(self, sample, stratify=None):
         return sample[self.sample_index(range(len(sample)), stratify=stratify)]

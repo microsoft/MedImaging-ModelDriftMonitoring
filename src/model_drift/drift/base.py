@@ -1,5 +1,3 @@
-from sklearn.utils import resample
-import numpy as np
 import pandas as pd
 from model_drift.data.utils import nested2series
 

@@ -1,6 +1,5 @@
 import numpy as np
 import os
-import yaml
 import pandas as pd
 import six
 import torch
@@ -118,8 +117,9 @@ class BaseDataset(Dataset):
     def read_image(self, image_path):
         try:
             image_data_original = Image.open(image_path)
-        except:
+        except BaseException:
             print(f"\nbad path: {image_path}\n")
+            raise
         return normalize_PIL(image_data_original)
 
 
@@ -150,6 +150,7 @@ class ChestXrayDataset(BaseDataset):
             self.image_index.append(row.Path)
             self.recon_image_path.append(row.Path.partition("CheXpert-v1.0/")[2])
 
+
 class PediatricChestXrayDataset(BaseDataset):
     def prepare_data(self):
         # Get all image paths and image labels from dataframe
@@ -158,7 +159,7 @@ class PediatricChestXrayDataset(BaseDataset):
             dataframe = pd.read_csv(self.dataframe_or_csv, low_memory=False)
         else:
             dataframe = self.dataframe_or_csv
-        
+
         for _, row in dataframe.iterrows():
             # Read in image from path
             image_path = os.path.join(
@@ -233,11 +234,11 @@ class MIDRCDataset(BaseDataset):
             # Read in image from path
             image_path = os.path.join(
                 self.image_dir or self.folder_dir, 'png',
-                row['ImageId'][:-3]+'png',
+                row['ImageId'][:-3] + 'png',
             )
             self.image_paths.append(image_path)
             labels = row[self.labels].astype(int).tolist()
             self.frontal.append(float(row["Frontal"]))
             self.image_labels.append(labels)
-            self.image_index.append(row['ImageId'][:-3]+'png')
-            self.recon_image_path.append(row['ImageId'][:-3]+'png')
+            self.image_index.append(row['ImageId'][:-3] + 'png')
+            self.recon_image_path.append(row['ImageId'][:-3] + 'png')

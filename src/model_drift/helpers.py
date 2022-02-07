@@ -1,22 +1,20 @@
-from joblib import Parallel
-from tqdm.auto import tqdm
 import itertools
 import sys
 
-import numpy as np
-from functools import reduce
-
-import six
-from collections.abc import Iterator
-import random
-import tqdm
 import json
 import logging
+import numpy as np
 import os
 import pandas as pd
+import random
+import six
+import tqdm
+from collections.abc import Iterator
 from distutils import dir_util
+from functools import reduce
+from joblib import Parallel
 from sklearn.feature_selection import mutual_info_classif
-from . import settings
+
 
 # from .data.utils import fix_strlst
 
@@ -140,7 +138,7 @@ def jsonl_files2dataframe(jsonl_files, converter=None, refresh_rate=None, **kwar
         with open(fn, 'r') as f:
             lines = f.readlines()
             if refresh_rate is not None:
-                kwargs['miniters'] = int(len(lines)*refresh_rate)
+                kwargs['miniters'] = int(len(lines) * refresh_rate)
             for line in tqdm.tqdm(lines, **kwargs):
                 df.append(converter(json.loads(line)))
     return pd.json_normalize(df)
@@ -168,7 +166,6 @@ def merge_frames(*dfs, **join_kwargs):
 
 
 def column_xs(df, include=None, exclude=None):
-
     if isinstance(include, six.string_types):
         include = [include]
 
@@ -190,6 +187,7 @@ def flatten_index(df, sep='.'):
         if isinstance(c, six.string_types):
             return c
         return sep.join(c)
+
     _df = df.copy()
     _df.columns = [__flatten_index(col) for col in _df.columns]
     return _df
@@ -220,17 +218,17 @@ def mutual_info_performance(perf_dataframe, other_dataframe, bins=10, **kwargs):
 
 def df_standard_scale(idf, nstd=1):
     stats = idf.agg(["mean", "std"])
-    return (idf-stats.loc['mean'])/(stats.loc["std"])
+    return (idf - stats.loc['mean']) / (stats.loc["std"])
 
 
 def w_avg(df, weights):
     cols = df.columns
     cols = [c for c in weights if c in cols]
     weights = np.array([weights[c] for c in cols])
-    weights = weights/weights.sum()
+    weights = weights / weights.sum()
     tmp = df[cols].copy()
     for c, w in zip(cols, weights):
-        tmp[c] = tmp[c]*w
+        tmp[c] = tmp[c] * w
     return tmp.sum(axis=1, skipna=False)
 
 
@@ -250,7 +248,7 @@ class ProgressParallel(Parallel):
     def do_refresh(self):
         if self.miniters is None:
             return True
-        return (self.n_completed_tasks == self.n_dispatched_tasks or 
+        return (self.n_completed_tasks == self.n_dispatched_tasks or
                 (self.n_completed_tasks % self.miniters == 0))
 
     def print_progress(self):
@@ -263,19 +261,19 @@ class ProgressParallel(Parallel):
 
 
 class CycleList(Iterator):
-    def  __init__(self, lst, shuffle=False):
+    def __init__(self, lst, shuffle=False):
         self.lst = lst
         self.index = list(range(len(lst)))
         self.shuffle = shuffle
         self.reset()
-        
+
     def reset(self):
         self.cur = 0
         if self.shuffle:
             random.shuffle(self.index)
-        
+
     def get_curr(self):
-        return self.lst[self.index[self.cur]]    
+        return self.lst[self.index[self.cur]]
 
     def __next__(self):
         if self.cur >= len(self.lst):
@@ -283,10 +281,10 @@ class CycleList(Iterator):
         v = self.get_curr()
         self.cur += 1
         return v
-        
+
     def __iter__(self):
         while True:
             yield self.__next__()
-            
+
     def take(self, n):
         return [next(self) for i in range(n)]

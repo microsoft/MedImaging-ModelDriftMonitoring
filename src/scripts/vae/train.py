@@ -15,10 +15,9 @@ if library_path not in PYPATH:
 
 from model_drift.callbacks import IOMonitor
 from model_drift.models.vae import VAE
-from model_drift.helpers import download_model_azure, get_azure_logger
+from model_drift.helpers import get_azure_logger
 from model_drift.data.datamodules import PadChestDataModule, CheXpertDataModule
 from model_drift.data.transform import VisionTransformer
-
 
 num_gpus = torch.cuda.device_count()
 num_cpus = os.cpu_count()
@@ -43,13 +42,13 @@ print("=" * 5)
 print()
 
 parser = argparse.ArgumentParser()
-parser.add_argument("--dataset", type=str, dest="dataset", help="dataset to train on", default="chexpert",  choices=['chexpert', 'padchest'])
+parser.add_argument("--dataset", type=str, dest="dataset", help="dataset to train on", default="chexpert",
+                    choices=['chexpert', 'padchest'])
 known_args, _ = parser.parse_known_args()
 
 print(known_args)
 
 datasets = {"padchest": PadChestDataModule, "chexpert": CheXpertDataModule}
-
 
 dm_cls = datasets[known_args.dataset]
 print(dm_cls)
@@ -112,7 +111,6 @@ args.image_dims = transformer.dims
 params = vars(args)
 model = VAE.from_argparse_args(args, params=params)
 
-
 if args.auto_lr_find:
     lr_finder = trainer.tuner.lr_find(model)
     fig = lr_finder.plot(suggest=True)
@@ -121,6 +119,7 @@ if args.auto_lr_find:
 
     if args.run_azure:
         from azureml.core import Run
+
         run = Run.get_context()
         trainer.logger.experiment.log_figure(run.id, lr_finder.plot(suggest=True), "lr_find.png")
         trainer.logger.experiment.log_param(run.id, "real_base_lr", model.base_lr)
@@ -132,9 +131,6 @@ if trainer.is_global_zero:
         print(model, file=f)
 
 trainer.fit(model, dm)
-
-
-
 
 #
 # import argparse

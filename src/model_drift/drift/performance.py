@@ -1,16 +1,15 @@
+import numpy as np
 import torch
 from sklearn import metrics
 from torchmetrics.functional import auroc
 from .base import BaseDriftCalculator
-import pandas as pd
-import numpy as np
 
 
 def macro_auc(scores, labels, skip_missing=True):
     if len(scores) == 0:
         return float('NaN')
     N = labels.shape[1]
-    aucs = [0]*N
+    aucs = [0] * N
     for i in range(N):
         try:
             aucs[i] = auroc(torch.tensor(scores[i]), torch.tensor(labels[i]).long()).numpy()
@@ -21,7 +20,7 @@ def macro_auc(scores, labels, skip_missing=True):
 
     aucs = np.array(aucs)
     c = (~np.isnan(aucs)).sum() if skip_missing else N
-    return np.nansum(aucs)/c
+    return np.nansum(aucs) / c
 
 
 def micro_auc(scores, labels):
@@ -29,7 +28,6 @@ def micro_auc(scores, labels):
 
 
 def classification_report(scores, labels, target_names=None, th=0.5, ):
-
     keeps = (labels.sum(axis=0) > 0)
 
     if target_names is None:

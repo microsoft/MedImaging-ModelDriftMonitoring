@@ -1,12 +1,9 @@
-import os
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from PIL import ImageFile
 from azureml.core import Run
-
 from .base import VisionModuleBase
-from torch.utils.data import DataLoader
 
 ImageFile.LOAD_TRUNCATED_IMAGES = True
 
@@ -230,11 +227,10 @@ class VAE(VisionModuleBase):
         return loss
 
     def validation_step(self, image_batch, batch_idx):
-        batch, label, frontal, index = (
+        batch, label, frontal = (
             image_batch["image"],
             image_batch["label"],
             image_batch["frontal"],
-            image_batch["index"],
         )
         lw = frontal if self.ignore_nonfrontal_loss else None
         loss, logs, recon = self.step(batch, loss_weights=lw)

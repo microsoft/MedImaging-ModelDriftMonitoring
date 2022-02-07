@@ -22,8 +22,8 @@ class ChiSqDriftCalculator(BaseDriftCalculator):
         obs = np.array([sample_counts.get(k, 0) for k in keys])
 
         if self.use_freq:
-            exp = exp/exp.sum()
-            obs = obs/obs.sum()
+            exp = exp / exp.sum()
+            obs = obs / obs.sum()
 
         out = {}
         out['distance'], out['pval'], out['dof'], _ = chi2_contingency(np.vstack([exp, obs]),

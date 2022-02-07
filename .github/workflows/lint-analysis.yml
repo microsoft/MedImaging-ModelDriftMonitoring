@@ -26,5 +26,5 @@ jobs:
       - name: Install Python dependencies
         run: pip install black flake8
 
-      # - name: flake8
-      #   run: flake8 .
+      - name: flake8
+        run: flake8 .

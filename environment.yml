@@ -33,12 +33,12 @@ dependencies:
       - pandas==1.1.5
       - param==1.9.3
       - pillow==8.2.0
+      - plotly==5.3.1
       - pytorch-lightning==1.4.7
       - scikit-image==0.17.2
       - scikit-learn==0.24.2
       - scipy==1.7.0
-      - seaborn==0.10.1
-      - six==1.16.0
+      - seaborn==0.11.2
       - sklearn-pandas==2.2.0
       - tabulate==0.8.7
       - tensorboard==2.3.0

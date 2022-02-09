@@ -1,7 +1,7 @@
 > This code is provided for research and development use only. This code is not intended for use in clinical decision-making or for any other clinical use and the performance of the code for clinical use has not been established. This source code requires selection of a reference and test datasets by the user. Microsoft does not warrant the suitability or accuracy of any predictive model generated using this source code. You bear sole responsibility for selection of a training dataset and for evaluation and use of any resulting model
 
 
-# Multi-Modal Drift Concordance For Automated Chest X-Ray Interpretation
+# Multi-Modal Drift Concordance For DL-based Automated Chest X-Ray Interpretation
 
 <p align="left">
   <img alt="PyPI version" src="https://img.shields.io/pypi/v/libauc?color=blue&style=flat-square"/>

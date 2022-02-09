@@ -3,7 +3,6 @@ import sys
 
 import json
 import logging
-import numpy as np
 import os
 import pandas as pd
 import random
@@ -13,25 +12,6 @@ from collections.abc import Iterator
 from distutils import dir_util
 from functools import reduce
 from joblib import Parallel
-from sklearn.feature_selection import mutual_info_classif
-
-
-# from .data.utils import fix_strlst
-
-
-# def read_padchest(csv_file=None) -> pd.DataFrame:
-#     csv_file = csv_file or settings.PADCHEST_FILENAME
-#     df = pd.read_csv(csv_file, low_memory=False, index_col=0)
-#     df["StudyDate"] = pd.to_datetime(df["StudyDate_DICOM"], format="%Y%m%d")
-#     df["PatientBirth"] = pd.to_datetime(df["PatientBirth"], format="%Y")
-#     df["Labels"] = fix_strlst(df["Labels"])
-#     return df
-
-
-# def prepare_padchest(df) -> pd.DataFrame:
-#     df["StudyDate"] = pd.to_datetime(df["StudyDate_DICOM"], format="%Y%m%d")
-#     df["PatientBirth"] = pd.to_datetime(df["PatientBirth"], format="%Y")
-#     return df
 
 
 def rolling_dt_apply_with_stride(
@@ -77,44 +57,6 @@ def print_env():
     for k, v in sorted(os.environ.items()):
         print(f" {k}={v}")
     print("--------------------")
-
-
-def get_run_name():
-    from azureml.core import Run
-    run = Run.get_context()
-    return run.display_name
-
-
-def download_model_azure(model_path, output_dir="./outputs/", local_path_env_var='_LOCAL_MODEL_PATH_'):
-    from azureml.core import Run, Model
-    run = Run.get_context()
-    # Add run context for AML
-    ws = run.experiment.workspace
-    if local_path_env_var in os.environ:
-        model_path = os.getenv(local_path_env_var)
-        print(f"Found model path in environment (VAR={local_path_env_var}): {model_path}")
-    else:
-        model_name = modelpath2name(model_path)
-        print(f"Downloading azure registered model: {model_name} ")
-        m = Model(ws, model_name)
-        os.environ[local_path_env_var] = model_path = m.download(
-            exist_ok=True,
-            target_dir=os.path.join(output_dir),
-        )
-        print(f"Download Complete! Path: {model_path}")
-    return model_path
-
-
-def get_azure_logger():
-    from azureml.core import Run
-    from pytorch_lightning.loggers import MLFlowLogger
-    run = Run.get_context()
-    mlflow_url = run.experiment.workspace.get_mlflow_tracking_uri()
-
-    print("ml flow uri:", mlflow_url)
-    mlf_logger = MLFlowLogger(experiment_name=run.experiment.name, tracking_uri=mlflow_url)
-    mlf_logger._run_id = run.id
-    return mlf_logger
 
 
 def argsdict2list(d):
@@ -181,6 +123,9 @@ def column_xs(df, include=None, exclude=None):
 
     return cols
 
+def filter_columns(df, include=None,exclude=None,  ):
+    cxs = column_xs(df, include=include, exclude=exclude)
+    return df[cxs]
 
 def flatten_index(df, sep='.'):
     def __flatten_index(c):
@@ -204,32 +149,9 @@ def align_frames(perf_dataframe, other_dataframe, how='inner', include=None, exc
     return mdf[corr_cols], mdf[target_col]
 
 
-def correlate_performance(perf_dataframe, other_dataframe, **kwargs):
-    X, Y = align_frames(perf_dataframe, other_dataframe, **kwargs)
-    return X.corrwith(Y).rename("correlation")
-
-
-def mutual_info_performance(perf_dataframe, other_dataframe, bins=10, **kwargs):
-    X, Y = align_frames(perf_dataframe, other_dataframe, **kwargs)
-    Y, bins = pd.cut(Y, bins=bins, retbins=True)
-    info_gain = mutual_info_classif(X.values, Y.cat.codes)
-    return pd.Series(info_gain, index=X.columns.tolist(), name="info_gain")
-
-
 def df_standard_scale(idf, nstd=1):
     stats = idf.agg(["mean", "std"])
     return (idf - stats.loc['mean']) / (stats.loc["std"])
-
-
-def w_avg(df, weights):
-    cols = df.columns
-    cols = [c for c in weights if c in cols]
-    weights = np.array([weights[c] for c in cols])
-    weights = weights / weights.sum()
-    tmp = df[cols].copy()
-    for c, w in zip(cols, weights):
-        tmp[c] = tmp[c] * w
-    return tmp.sum(axis=1, skipna=False)
 
 
 class ProgressParallel(Parallel):
@@ -288,3 +210,16 @@ class CycleList(Iterator):
 
     def take(self, n):
         return [next(self) for i in range(n)]
+
+
+def prepare_output_csv(fname, which="mean"):
+    
+    combined_df = pd.read_csv(str(fname), index_col=0, header=[0, 1, 2, 3])
+    combined_df.index = pd.to_datetime(combined_df.index)
+    flip = column_xs(combined_df, include=["pval"])
+    combined_df[flip] = 1 - combined_df[flip]
+
+    error_df = combined_df.swaplevel(0, -1, axis=1)[["std"]].swaplevel(0, -1, axis=1).droplevel(-1, axis=1).copy()
+    combined_df = combined_df.swaplevel(0, -1, axis=1)[[which]].swaplevel(0, -1, axis=1).droplevel(-1, axis=1).copy()
+
+    return error_df, combined_df

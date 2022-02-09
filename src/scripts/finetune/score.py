@@ -5,6 +5,8 @@ import torch
 from argparse import Namespace
 from pathlib import Path
 
+import model_drift.azure_utils
+
 library_path = str(Path(__file__).parent.parent.parent)
 PYPATH = os.environ.get("PYTHONPATH", "").split(":")
 if library_path not in PYPATH:
@@ -64,7 +66,7 @@ if not os.path.exists(args.output_dir):
     os.makedirs(args.output_dir)
 
 if args.run_azure:
-    args.model = helpers.download_model_azure(args.model, args.output_dir)
+    args.model = model_drift.azure_utils.download_model_azure(args.model, args.output_dir)
 
 args.default_root_dir = args.output_dir
 

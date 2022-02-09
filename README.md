@@ -9,7 +9,7 @@ This repository contains sample code and a framework for monitoring drift in med
 Prepare conda environment
 
 ```
-conda env create -f .\environment.yml --prefix ".venv"
+conda env create -f ./environment.yml --prefix ".venv"
 conda activate conda environment
 conda develop src
 ```

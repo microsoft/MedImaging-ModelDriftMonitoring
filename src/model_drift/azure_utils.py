@@ -7,7 +7,11 @@ from azureml.core import Experiment
 from model_drift.helpers import modelpath2name
 
 
-def get_run(display_name, experiment):
+def get_run(display_name, experiment, workspace=None):
+    if isinstance(experiment, six.string_types):
+        if workspace is None:
+            raise ValueError("if experiment is string, must provide workspace")
+        experiment = Experiment(workspace=workspace, name=experiment)
     for run in experiment.get_runs():
         if run.display_name == display_name:
             return run
@@ -75,3 +79,18 @@ def get_azure_logger():
     mlf_logger = MLFlowLogger(experiment_name=run.experiment.name, tracking_uri=mlflow_url)
     mlf_logger._run_id = run.id
     return mlf_logger
+
+def download_metrics_file(run, topdir ="./",  experiment=None, workspace=None, overwrite=True):
+    
+    if isinstance(run, six.string_types):
+        if experiment is None:
+            raise ValueError("if run is string, must provide experiment")
+        run  = get_run(run, experiment, workspace)
+        
+    
+    output_file_path = os.path.join(topdir, run.display_name+".csv")
+    if not overwrite and os.path.exists(output_file_path):
+        return output_file_path
+    run.download_file("outputs/output.csv", output_file_path=output_file_path)
+    return output_file_path
+

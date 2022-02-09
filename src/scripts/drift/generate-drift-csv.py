@@ -1,6 +1,8 @@
 import os
 from pathlib import Path
 
+from cv2 import log
+
 library_path = str(Path(__file__).parent.parent.parent)
 PYPATH = os.environ.get("PYTHONPATH", "").split(":")
 if library_path not in PYPATH:
@@ -21,9 +23,11 @@ import numpy as np
 
 import argparse
 
+logger = helpers.basic_logging()
+
 
 def create_ood_dataframe(outside_data, pct, counts, start_date=None, end_date=None, shuffle=False):
-    print(counts.index.min(), counts.index.max())
+    # print(counts.index.min(), counts.index.max())
     if start_date is None:
         start_date = counts.index.min()
 
@@ -41,9 +45,9 @@ def create_ood_dataframe(outside_data, pct, counts, start_date=None, end_date=No
 
 
 def filter_label_by_score(df, q, sample_start_date=None, sample_end_date=None, label_cols=tuple(LABEL_MAP), bad=True):
-    print("Input Len", len(df))
+    # print("Input Len", len(df))
     stuff = df.loc[sample_start_date:sample_end_date].reset_index()
-    print("Sample Len", len(stuff))
+    # print("Sample Len", len(stuff))
     index = set()
     for label_col in label_cols:
         if bad:
@@ -77,13 +81,12 @@ def filter_midrc(df, midrc_include=None, midrc_exclude=None):
     return df[filte & filti]
 
 
-helpers.basic_logging()
+
 warnings.filterwarnings("ignore")
 
 print("~-" * 10)
-print("~-" * 10)
-
 print("Pandas Version:", pd.__version__)
+print("~-" * 10)
 
 parser = argparse.ArgumentParser()
 
@@ -104,19 +107,12 @@ parser.add_argument("--ref_frontal_only", type=int, default=1)
 
 parser.add_argument("--include_metadata", type=int, default=True)
 
-parser.add_argument("--nonfrontal_add_date", type=str, default=None)
-parser.add_argument("--frontal_remove_date", type=str, default=None)
+parser.add_argument("--lateral_add_date", type=str, default=None)
+parser.add_argument("--indist_remove_date", type=str, default=None)
 
 parser.add_argument("--peds_weight", type=float, default=0)
 parser.add_argument("--peds_start_date", type=str, default=None)
 parser.add_argument("--peds_end_date", type=str, default=None)
-
-parser.add_argument("--midrc_weight", type=float, default=0)
-parser.add_argument("--midrc_start_date", type=str, default=None)
-parser.add_argument("--midrc_end_date", type=str, default=None)
-
-parser.add_argument("--midrc_include", type=str, default=None)
-parser.add_argument("--midrc_exclude", type=str, default=None)
 
 parser.add_argument("--replacement", type=int, default=1)
 parser.add_argument("--sample_size", type=int, default=1000)
@@ -144,6 +140,9 @@ parser.add_argument("--end_date", type=str, default=None)
 
 args = parser.parse_args()
 
+if args.dataset != "padchest":
+    raise NotImplementedError("unrecognized dataset")
+
 input_path = Path(args.input_dir)
 output_path = Path(args.output_dir)
 
@@ -151,30 +150,23 @@ num_cpus = os.cpu_count()
 if args.num_workers < 0:
     args.num_workers = num_cpus
 
-
-def add_arg_tags(args):
-    from azureml.core import Run
-    run = Run.get_context()
-    for k, v in vars(args):
-        run.tag(k, v)
-
-
 if args.run_azure:
     from azureml.core import Run
 
     run = Run.get_context()
+    param_tags = vars(args)
+    print(param_tags)
     for k, v in vars(args).items():
-        run.tag(k, v)
+        run.tag(k, str(v))
 
 name = "output"
-
-print(name)
 fname = output_path.joinpath(name + ".csv")
 
 num_cpus = os.cpu_count()
 if args.num_workers < 0:
     args.num_workers = num_cpus
 
+print("loading dataset vae results")
 vae_pred_file = str(input_path.joinpath('vae', args.vae_dataset, args.vae_filter, 'preds.jsonl'))
 vae_df = helpers.jsonl_files2dataframe(vae_pred_file, desc="reading VAE results", refresh_rate=.1)
 vae_df = pd.concat(
@@ -186,7 +178,8 @@ vae_df = pd.concat(
 )
 
 ##
-# vae_df.head()
+
+print("loading dataset predicted probabilities")
 label_cols = list(LABEL_MAP)
 scores_pred_file = str(
     input_path.joinpath('classifier', args.classifier_dataset, args.classifier_filter, "preds.jsonl"))
@@ -198,13 +191,8 @@ scores_df = pd.concat(
     ],
     axis=1)
 
-##
-# scores_df.head()
 
-if args.dataset != "padchest":
-    raise NotImplementedError("unrecognized dataset")
-
-print("loading padchest data")
+print("loading dataset metadata")
 pc = PadChest(str(input_path.joinpath(settings.PADCHEST_CSV_FILENAME)))
 pc.prepare()
 
@@ -212,17 +200,6 @@ pc.merge(vae_df, left_on="ImageID", right_on="index", how='inner')
 pc.merge(scores_df, left_on="ImageID", right_on="index", how='inner')
 
 train, val, test = pc.split(settings.PADCHEST_SPLIT_DATES, studydate_index=True)
-
-# Display
-pd.concat(
-    {
-        "all": pc.df["StudyDate"].describe(datetime_is_numeric=True),
-        "train": train.df["StudyDate"].describe(datetime_is_numeric=True),
-        "val": val.df["StudyDate"].describe(datetime_is_numeric=True),
-        "test": test.df["StudyDate"].describe(datetime_is_numeric=True),
-    },
-    axis=1,
-)
 
 calculators = {
     "FLOAT": [KSDriftCalculator],
@@ -265,7 +242,6 @@ ref_df = val.df.copy().assign(in_distro=True)
 if args.ref_frontal_only:
     ref_df = ref_df.query("Frontal")
 
-print(len(ref_df), len(val.df))
 dwc = TabularDriftCalculator(ref_df)
 
 for c, TYPE in cols.items():
@@ -283,17 +259,17 @@ target_df = pc.df.set_index('StudyDate')
 
 frontals_target_df = target_df.query("Frontal").copy()
 all_frontals = target_df.query("Frontal").copy()
-if args.frontal_remove_date:
-    frontals_target_df = frontals_target_df.loc[:args.frontal_remove_date]
+if args.indist_remove_date:
+    frontals_target_df = frontals_target_df.loc[:args.indist_remove_date]
 
-targets = {"pc-frontal": frontals_target_df.assign(in_distro=True)}
+targets = {"in dist": frontals_target_df.assign(in_distro=True)}
 
 print("in_distro target_dates", frontals_target_df.index.min(), frontals_target_df.index.max())
 
-if args.nonfrontal_add_date is not None:
+if args.lateral_add_date is not None:
     nonfrontals_target_df = target_df.query("~Frontal").copy()
-    nonfrontals_target_df = nonfrontals_target_df.loc[args.nonfrontal_add_date:]
-    targets['pc-nonfrontal'] = nonfrontals_target_df.assign(in_distro=False)
+    nonfrontals_target_df = nonfrontals_target_df.loc[args.lateral_add_date:]
+    targets['lateral'] = nonfrontals_target_df.assign(in_distro=False)
 
 if args.peds_weight:
     counts = all_frontals.groupby(all_frontals.index.date).count().iloc[:, 0]
@@ -332,44 +308,6 @@ if args.peds_weight:
             peds_data[c] = 0
     targets['peds'] = peds_data.assign(in_distro=False)
 
-if args.midrc_weight:
-    counts = frontals_target_df.groupby(frontals_target_df.index.date).count().iloc[:, 0]
-
-    # load peds classifier data
-    jsonl_file = str(input_path.joinpath('outside-data', "midrc-classifier-preds.jsonl"))
-    peds_scores_df = helpers.jsonl_files2dataframe(jsonl_file, desc="reading peds score results", refresh_rate=.1)
-    peds_scores_df = pd.concat(
-        [
-            peds_scores_df,
-            pd.DataFrame(peds_scores_df['activation'].values.tolist(), columns=[f"activation.{c}" for c in label_cols])
-        ],
-        axis=1)
-
-    # vae data
-    jsonl_file = str(input_path.joinpath('outside-data', "midrc-vae-preds.jsonl"))
-    peds_vae_df = helpers.jsonl_files2dataframe(jsonl_file, desc="reading peds VAE results", refresh_rate=.1)
-    peds_vae_df = pd.concat(
-        [
-            peds_vae_df,
-            pd.DataFrame(peds_vae_df['mu'].values.tolist(), columns=[f"mu.{c:0>3}" for c in range(128)])
-        ],
-        axis=1
-    )
-
-    # metadata
-    csv_file = jsonl_file = str(input_path.joinpath("outside-data", "midrc_metadata_pclabels_A.csv"))
-    metadata_df = pd.read_csv(csv_file, index_col=0)
-    midrc_data = metadata_df.join(peds_scores_df.set_index('index').join(peds_vae_df.set_index('index')), on='ImageId')
-    w = args.midrc_weight / (1 - args.midrc_weight)
-    print("before midrc_data", len(midrc_data))
-    midrc_data = filter_midrc(midrc_data, midrc_include=args.midrc_include, midrc_exclude=args.midrc_exclude)
-    print("after midrc_data", len(midrc_data))
-
-    midrc_data = create_ood_dataframe(midrc_data, w, counts,
-                                      start_date=args.midrc_start_date,
-                                      end_date=args.midrc_end_date, shuffle=True)
-    targets['midrc'] = midrc_data.assign(in_distro=False)
-
 if args.bad_q:
     counts = all_frontals.groupby(all_frontals.index.date).count().iloc[:, 0]
     bad_sample_data = filter_label_by_score(all_frontals, args.bad_q, args.bad_sample_start_date,
@@ -402,8 +340,6 @@ target_df = pd.concat(targets.values(), sort=True)
 
 if args.dbg:
     pass
-    # target_df = target_df.loc["2013-11-01":"2015-03-01"]
-    # target_df = target_df.loc["2014-05-01":"2015-03-01"]
 
 if args.start_date or args.end_date:
     target_df = target_df.loc[args.start_date: args.end_date]
@@ -411,9 +347,9 @@ if args.start_date or args.end_date:
 avg = target_df.groupby(target_df.index.date)['in_distro'].mean().mean()
 avgs = ', '.join("{}: {:.2%}".format(lab, p)
                  for lab, p in target_df.groupby(target_df.index.date)[label_cols].mean().mean(axis=0).items())
-
-print("overall", str(target_df.index.min()), str(target_df.index.max()), avg)
-print(" *", avgs, "\n")
+mind = str(target_df.index.min())
+maxd = str(target_df.index.max())
+print(f"{name}:\n {mind} to {maxd} indistro avg: {avg}\n |{avgs}")
 for name, xdf in targets.items():
     avg = target_df.groupby(target_df.index.date)['in_distro'].mean().reindex(xdf.index.unique()).mean()
     avgs = ', '.join("{}: {:.2%}".format(lab, p)
@@ -421,9 +357,10 @@ for name, xdf in targets.items():
                      .reindex(xdf.index.unique()).mean(axis=0).items())
     avgs1 = ', '.join("{}: {:.2%}".format(lab, p)
                       for lab, p in xdf.groupby(xdf.index.date)[label_cols].mean().mean(axis=0).items())
-    print(name, str(xdf.index.min()), str(xdf.index.max()), avg)
-    print(" *|", avgs, )
-    print(" *", avgs1, "\n")
+    
+    mind = str(xdf.index.min())
+    maxd = str(xdf.index.max())
+    print(f"{name}:\n {mind} to {maxd} indistro avg: {avg}\n |{avgs}\n *{avgs}")
 
 # Output target_df and ref_df
 reproduce_path = output_path.joinpath('data')

@@ -86,8 +86,8 @@ def jsonl_files2dataframe(jsonl_files, converter=None, refresh_rate=None, **kwar
     return pd.json_normalize(df)
 
 
-def basic_logging(level=logging.INFO, output_file=None, fmt='[%(asctime)s] %(levelname)s [%(name)s] %(message)s'):
-    logger = logging.getLogger()
+def basic_logging(name=None,level=logging.INFO, output_file=None, fmt='[%(asctime)s] %(levelname)s [%(name)s] %(message)s'):
+    logger = logging.getLogger(name)
     logger.setLevel(level)
     stream_handler = logging.StreamHandler(sys.stdout)
     formatter = logging.Formatter(fmt)
@@ -99,7 +99,7 @@ def basic_logging(level=logging.INFO, output_file=None, fmt='[%(asctime)s] %(lev
         file_handler.setFormatter(formatter)
         logger.addHandler(file_handler)
 
-    logger.info("This is the start of logging")
+    return logger
 
 
 def merge_frames(*dfs, **join_kwargs):
@@ -123,7 +123,7 @@ def column_xs(df, include=None, exclude=None):
 
     return cols
 
-def filter_columns(df, include=None,exclude=None,  ):
+def filter_columns(df, include=None,exclude=None):
     cxs = column_xs(df, include=include, exclude=exclude)
     return df[cxs]
 
@@ -212,14 +212,3 @@ class CycleList(Iterator):
         return [next(self) for i in range(n)]
 
 
-def prepare_output_csv(fname, which="mean"):
-    
-    combined_df = pd.read_csv(str(fname), index_col=0, header=[0, 1, 2, 3])
-    combined_df.index = pd.to_datetime(combined_df.index)
-    flip = column_xs(combined_df, include=["pval"])
-    combined_df[flip] = 1 - combined_df[flip]
-
-    error_df = combined_df.swaplevel(0, -1, axis=1)[["std"]].swaplevel(0, -1, axis=1).droplevel(-1, axis=1).copy()
-    combined_df = combined_df.swaplevel(0, -1, axis=1)[[which]].swaplevel(0, -1, axis=1).droplevel(-1, axis=1).copy()
-
-    return error_df, combined_df

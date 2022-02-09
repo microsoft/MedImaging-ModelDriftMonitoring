@@ -64,7 +64,7 @@ Our framework has a
 modular design and can be used in a plug-and-play manner to test multiple input drift modalities and scenarios with
 include or new datasets.
 
-## Why Multi-Modal Drift?
+## :mag: Why Multi-Modal Drift?
 
 Rapidly expanding Clinical AI applications worldwide have the potential to impact to all areas of medical practice. Medical imaging applications constitute a vast majority of approved clinical AI applications.  A fundamental question remains: What happens after the AI model goes into production?
 

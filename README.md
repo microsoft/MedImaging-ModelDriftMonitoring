@@ -118,7 +118,7 @@ conda develop src
 
 - [ ]  Your Chest X-Ray dataset should have **0,1** labels, e.g., **1** represents **presence of finding** and **0** is the **absence of a given finding**
 - [ ]  If there is no metadata or ground truth available, your drift analysis will be based on the Variational Autoencoder (VAE) and model output scores
-## Contributing
+## 🤝 Contributing
 
 This project welcomes contributions and suggestions. Most contributions require you to agree to a Contributor License Agreement (CLA) declaring that you have the right to, and actually do, grant us the rights to use your contribution. For details, visit https://cla.opensource.microsoft.com.
 
@@ -139,12 +139,12 @@ If you find MMC Drift useful in your work, please acknowledge our library and ci
       primaryClass={eess.IV}
 }
 ```
-## Acknowledgements
+## ✔️ Acknowledgements
 
  - [Microsoft Healthcare](https://awesomeopensource.com/project/elangosundar/awesome-README-templates)
  - [Stanford AIMI](https://github.com/matiassingers/awesome-readme)
 
 
-## Trademarks
+## ©️ Trademarks
 
 This project may contain trademarks or logos for projects, products, or services. Authorized use of Microsoft trademarks or logos is subject to and must follow Microsoft's Trademark & Brand Guidelines. Use of Microsoft trademarks or logos in modified versions of this project must not cause confusion or imply Microsoft sponsorship. Any use of third-party trademarks or logos are subject to those third-party's policies.

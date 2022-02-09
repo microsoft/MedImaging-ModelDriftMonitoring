@@ -82,7 +82,7 @@ Rapidly expanding Clinical AI applications worldwide have the potential to impac
 
 
 
-## Features
+## :star: Features
 
 - Plug-and-play utilization
 - Use PyTorch Lightning for quicker reproducibility
@@ -114,7 +114,7 @@ conda develop src
 - Clinical Workflow Failure through injecting pediatric Chest X-Ray images to a frontal-only pipeline [Notebook][Script]
 - Unification of statistical and model performance-based drift metrics [Notebook][Script]
 
-## Useful Tips
+## :zap: Useful Tips
 
 - [ ]  Your Chest X-Ray dataset should have **0,1** labels, e.g., **1** represents **presence of finding** and **0** is the **absence of a given finding**
 - [ ]  If there is no metadata or ground truth available, your drift analysis will be based on the Variational Autoencoder (VAE) and model output scores
@@ -125,7 +125,7 @@ This project welcomes contributions and suggestions. Most contributions require 
 When you submit a pull request, a CLA bot will automatically determine whether you need to provide a CLA and decorate the PR appropriately (e.g., status check, comment). Simply follow the instructions provided by the bot. You will only need to do this once across all repos using our CLA.
 
 This project has adopted the Microsoft Open Source Code of Conduct. For more information see the Code of Conduct FAQ or contact opencode@microsoft.com with any additional questions or comments.
-## Citation
+## 📖 Citation
 
 If you find MMC Drift useful in your work, please acknowledge our library and cite the following paper:
 

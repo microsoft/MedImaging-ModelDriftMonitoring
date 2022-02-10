@@ -153,6 +153,11 @@ data/*
 # Results Directory
 results/*
 !results/README.md
+!results/drift/tough_balloon_jgphht2z.csv
+!results/drift/serene_net_cb97mxt8.csv
+!results/drift/busy_sun_f8s4yt3h.csv
+!results/drift/good_stamp_bdz1lskm.csv
+!results/drift/shy_shampoo_rf8w34nf.csv
 
 # Model Checkpoints 
 *.ckpt

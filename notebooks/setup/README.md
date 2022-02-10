@@ -42,20 +42,20 @@ To complete this tutorial you need to download and extract the PadChest dataset,
 
 ## Download and Register Our Pretrained Models into AzureML
 
-1. Download models [[Classifier](TBD), [VAE](TBD)]
-2. Place in `<PROJECT_TOP>/models/`
-3. Register AzureML models [[Notebook](./register_azureml_models.ipynb)]
+1. Place models[^1] in `<PROJECT_TOP>/models/`
+2. Register AzureML models [[Notebook](./register_azureml_models.ipynb)]
 
+
+[^1]: Available upon request.
 ## Train your own models (Optional)
 
  - Training VAE [[Notebook](./train_vae.ipynb)][[Script](../../src/scripts/vae/train.py)]
- - Training Classifier [[Notebook](./train_model.ipynb)][[Script](../../src/scripts/finetune/train.py)]
-    - [CheXPert pretrained model](tbd)
+ - Training Classifier[^2] [[Notebook](./train_model.ipynb)][[Script](../../src/scripts/finetune/train.py)]
  - Register Your own AzureML Models [[Notebook](./register_azureml_models.ipynb)]
 
-
-
+[^2]: Requires pretrained model, available upon request
 # Whats Next?
 
 After you complete these steps, continue the tutorial [here](../calculate_drift/README.md)
+
 

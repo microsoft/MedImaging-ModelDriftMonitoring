@@ -13,11 +13,15 @@ Please follow these guides:
 - Generating VAE $Z$: [Notebook](./generate_vae_data.ipynb)
 - Generating predicted probabilities: [Notebook](./generate_model_score_data.ipynb.ipynb)
 
+_Note_: Our VAE and predictions are available upon request.
+
 ## Calculate Individual Metrics:
 Once you have $Z$ vectors and predicted probabilities you will need to calculate individual metrics using that data.
 To this, you must create a result dataset in AzureML and to place the jsonl files, and PadChest metadata csv, then run a [script](../../src/scripts/drift/generate-drift-csv.py) to calculate metrics for PadChest.
 Please follow this guide:
 - Calculating individual drift metrics: [Notebook](./run-generate-drift.ipynb)
+
+_Note_: Our individual metrics are provided as part of this release. 
 
 ## Unifying Metrics
 After you have generated individual metrics, we use these to generate our unified metric, $\mathit{MMC}$. Please see this guide:

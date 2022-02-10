@@ -1,7 +1,9 @@
+from collections import defaultdict
+
 import numpy as np
 import pandas as pd
 import tqdm
-from collections import defaultdict
+
 from model_drift.data.utils import nested2series, rolling_window_dt_apply
 from .collection import DriftCollectionCalculator
 

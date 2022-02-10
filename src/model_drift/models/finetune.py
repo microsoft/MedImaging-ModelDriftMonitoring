@@ -1,7 +1,7 @@
+from collections import OrderedDict
+
 import torch
 import torch.nn as nn
-
-from collections import OrderedDict
 from torchmetrics import AUROC, MetricCollection
 from torchvision import models
 

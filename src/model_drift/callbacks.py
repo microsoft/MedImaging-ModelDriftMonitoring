@@ -1,15 +1,15 @@
-import time
-
 import json
 import logging
-import numpy as np
 import os
 import random
+import time
+from collections import defaultdict
+
+import numpy as np
 import torch
 import torchvision
 import tqdm
 from PIL import Image
-from collections import defaultdict
 from pytorch_lightning import Callback
 from pytorch_lightning.callbacks import BasePredictionWriter
 from torch.nn import functional as F

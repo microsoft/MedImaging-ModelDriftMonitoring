@@ -1,8 +1,6 @@
 import os
 from pathlib import Path
 
-from cv2 import log
-
 library_path = str(Path(__file__).parent.parent.parent)
 PYPATH = os.environ.get("PYTHONPATH", "").split(":")
 if library_path not in PYPATH:
@@ -79,7 +77,6 @@ def filter_midrc(df, midrc_include=None, midrc_exclude=None):
             filte = filte & ~df[col]
 
     return df[filte & filti]
-
 
 
 warnings.filterwarnings("ignore")
@@ -190,7 +187,6 @@ scores_df = pd.concat(
         pd.DataFrame(scores_df['activation'].values.tolist(), columns=[f"activation.{c}" for c in label_cols])
     ],
     axis=1)
-
 
 print("loading dataset metadata")
 pc = PadChest(str(input_path.joinpath(settings.PADCHEST_CSV_FILENAME)))
@@ -357,7 +353,7 @@ for name, xdf in targets.items():
                      .reindex(xdf.index.unique()).mean(axis=0).items())
     avgs1 = ', '.join("{}: {:.2%}".format(lab, p)
                       for lab, p in xdf.groupby(xdf.index.date)[label_cols].mean().mean(axis=0).items())
-    
+
     mind = str(xdf.index.min())
     maxd = str(xdf.index.max())
     print(f"{name}:\n {mind} to {maxd} indistro avg: {avg}\n |{avgs}\n *{avgs}")

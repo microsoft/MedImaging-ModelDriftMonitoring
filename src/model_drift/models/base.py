@@ -1,7 +1,8 @@
-import pytorch_lightning as pl
 from argparse import ArgumentParser, Namespace
-from pytorch_lightning.utilities.argparse import from_argparse_args, get_init_arguments_and_types
 from typing import Any, List, Tuple, Union
+
+import pytorch_lightning as pl
+from pytorch_lightning.utilities.argparse import from_argparse_args, get_init_arguments_and_types
 
 
 class VisionModuleBase(pl.LightningModule):

@@ -1,9 +1,8 @@
 import numpy as np
 import pandas as pd
-import six
 from sklearn.feature_selection import mutual_info_classif
 
-from model_drift.helpers import filter_columns, align_frames
+from model_drift.helpers import align_frames
 
 
 def calc_stats(other_df, standardize_dates):
@@ -17,7 +16,7 @@ def standardize(other_df, std_dates=None, std_stats=None, clip=None) -> pd.DataF
     if std_stats is None:
         std_stats = calc_stats(other_df, std_dates)
     otherstd = other_df.copy()
-    
+
     std_stats = std_stats[otherstd.columns].copy()
 
     # cannot divide by zero
@@ -67,4 +66,3 @@ def w_avg(df, weights):
 def calculate_mmc(metrics_df, weights, std_stats, clip=10):
     metrics_std = standardize(metrics_df, std_stats=std_stats, clip=clip)
     return -w_avg(metrics_std, weights=weights)
-    

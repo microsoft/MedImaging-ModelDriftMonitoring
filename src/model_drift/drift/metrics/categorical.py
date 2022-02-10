@@ -1,6 +1,8 @@
-import numpy as np
 from collections import Counter
+
+import numpy as np
 from scipy.stats import chi2_contingency, chi2
+
 from .base import BaseDriftCalculator
 
 

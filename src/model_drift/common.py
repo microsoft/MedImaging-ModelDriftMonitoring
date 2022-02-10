@@ -1,5 +1,6 @@
-from data.dataset import IMAGENET_MEAN, IMAGENET_STD
 from torchvision import transforms
+
+from data.dataset import IMAGENET_MEAN, IMAGENET_STD
 
 
 def get_transform(image_size, normalization=(IMAGENET_MEAN, IMAGENET_STD), channels=3, **kwargs):

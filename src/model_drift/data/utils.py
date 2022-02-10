@@ -1,11 +1,12 @@
+import ast
 import itertools
 
-import ast
 import pandas as pd
 import tqdm
 from joblib import delayed
-from model_drift.helpers import ProgressParallel as Parallel
 from sklearn.preprocessing import MultiLabelBinarizer
+
+from model_drift.helpers import ProgressParallel as Parallel
 
 
 def fix_strlst(series, clean=True):

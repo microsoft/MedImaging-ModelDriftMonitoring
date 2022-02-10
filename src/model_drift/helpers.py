@@ -1,16 +1,16 @@
 import itertools
-import sys
-
 import json
 import logging
 import os
-import pandas as pd
 import random
-import six
-import tqdm
+import sys
 from collections.abc import Iterator
 from distutils import dir_util
 from functools import reduce
+
+import pandas as pd
+import six
+import tqdm
 from joblib import Parallel
 
 
@@ -86,7 +86,8 @@ def jsonl_files2dataframe(jsonl_files, converter=None, refresh_rate=None, **kwar
     return pd.json_normalize(df)
 
 
-def basic_logging(name=None,level=logging.INFO, output_file=None, fmt='[%(asctime)s] %(levelname)s [%(name)s] %(message)s'):
+def basic_logging(name=None, level=logging.INFO, output_file=None,
+                  fmt='[%(asctime)s] %(levelname)s [%(name)s] %(message)s'):
     logger = logging.getLogger(name)
     logger.setLevel(level)
     stream_handler = logging.StreamHandler(sys.stdout)
@@ -123,9 +124,11 @@ def column_xs(df, include=None, exclude=None):
 
     return cols
 
-def filter_columns(df, include=None,exclude=None):
+
+def filter_columns(df, include=None, exclude=None):
     cxs = column_xs(df, include=include, exclude=exclude)
     return df[cxs]
+
 
 def flatten_index(df, sep='.'):
     def __flatten_index(c):
@@ -210,5 +213,3 @@ class CycleList(Iterator):
 
     def take(self, n):
         return [next(self) for i in range(n)]
-
-

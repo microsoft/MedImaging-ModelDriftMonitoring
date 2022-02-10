@@ -80,17 +80,15 @@ def get_azure_logger():
     mlf_logger._run_id = run.id
     return mlf_logger
 
-def download_metrics_file(run, topdir ="./",  experiment=None, workspace=None, overwrite=True):
-    
+
+def download_metrics_file(run, topdir="./", experiment=None, workspace=None, overwrite=True):
     if isinstance(run, six.string_types):
         if experiment is None:
             raise ValueError("if run is string, must provide experiment")
-        run  = get_run(run, experiment, workspace)
-        
-    
-    output_file_path = os.path.join(topdir, run.display_name+".csv")
+        run = get_run(run, experiment, workspace)
+
+    output_file_path = os.path.join(topdir, run.display_name + ".csv")
     if not overwrite and os.path.exists(output_file_path):
         return output_file_path
     run.download_file("outputs/output.csv", output_file_path=output_file_path)
     return output_file_path
-

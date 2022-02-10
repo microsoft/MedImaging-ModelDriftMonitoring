@@ -3,6 +3,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from PIL import ImageFile
 from azureml.core import Run
+
 from .base import VisionModuleBase
 
 ImageFile.LOAD_TRUNCATED_IMAGES = True

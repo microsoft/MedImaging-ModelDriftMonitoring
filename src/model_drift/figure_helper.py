@@ -1,10 +1,11 @@
 import itertools
-from plotly.subplots import make_subplots
-import plotly.graph_objects as go
-import plotly.express as px
-from matplotlib import colors as mpl_colors
 from collections import defaultdict
+
 import pandas as pd
+import plotly.express as px
+import plotly.graph_objects as go
+from matplotlib import colors as mpl_colors
+from plotly.subplots import make_subplots
 
 
 def to_rgba(rgb, alpha=None):
@@ -14,11 +15,11 @@ def to_rgba(rgb, alpha=None):
     return "rgba(%s, %s, %s, %s)" % (rgb[0], rgb[1], rgb[2], alpha)
 
 
-def line_maker(color, **l):
-    return dict(color=color, **l)
+def line_maker(color, **lne):
+    return dict(color=color, **lne)
 
 
-def marker_maker(color, **l):  # noqa
+def marker_maker(color, **lne):  # noqa
     return dict(color=color)
 
 

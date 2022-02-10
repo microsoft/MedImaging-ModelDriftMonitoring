@@ -1,4 +1,4 @@
-from .sampler import Sampler
-from .categorical import ChiSqDriftCalculator
-from .numeric import KSDriftCalculator
-from .tabular import TabularDriftCalculator
+from .categorical import ChiSqDriftCalculator  # noqa
+from .numeric import KSDriftCalculator  # noqa
+from .sampler import Sampler  # noqa
+from .tabular import TabularDriftCalculator  # noqa

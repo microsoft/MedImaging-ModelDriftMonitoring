@@ -1,18 +1,12 @@
-> This code is provided for research and development use only. This code is not intended for use in clinical decision-making or for any other clinical use and the performance of the code for clinical use has not been established. This source code requires selection of a reference and test datasets by the user. Microsoft does not warrant the suitability or accuracy of any predictive model generated using this source code. You bear sole responsibility for selection of a training dataset and for evaluation and use of any resulting model
-
-
 # Multi-Modal Drift Concordance For DL-based Automated Chest X-Ray Interpretation
+## [**Paper**](https://arxiv.org/abs/2202.02833) | [**Issues**](https://github.com/microsoft/MedImaging-ModelDriftMonitoring/issues) | [**Tutorial**](./notebooks/README.md) | [**Github**](https://github.com/microsoft/MedImaging-ModelDriftMonitoring)
+
 
 <p align="left">
   <img alt="Python Version" src="https://img.shields.io/pypi/pyversions/libauc?color=blue&style=flat-square" />
   <img alt="PyTorch" src="https://img.shields.io/badge/PyTorch-1.8-yellow?color=blue&style=flat-square" />	
   <img alt="PyPI LICENSE" src="https://img.shields.io/badge/license-MIT-green" />
 </p>
-
-[**Paper**](https://arxiv.org/abs/2202.02833)
-| [**Issues**](https://github.com/microsoft/MedImaging-ModelDriftMonitoring/issues)
-| [**Tutorial**](./notebooks/README.md)
-| [**Github**](https://github.com/microsoft/MedImaging-ModelDriftMonitoring)
 
 MMC Drift aims to provide a system and set of experiments from the paper [CheXstray: Real-time Multi-Modal Data Concordance for Drift Detection in Medical Imaging AI](https://arxiv.org/abs/2202.02833) to test 
 engineered dataset and model drift scenarios
@@ -39,7 +33,9 @@ Rapidly expanding Clinical AI applications worldwide have the potential to impac
  (4) creation of open-source tools (this repo) enabling others to easily run their own workflows or scenarios. This work has important implications for addressing the translation gap related to continuous medical imaging AI model monitoring in dynamic healthcare environments.
 
 
+# Source Code
 
+> This code is provided for research and development use only. This code is not intended for use in clinical decision-making or for any other clinical use and the performance of the code for clinical use has not been established. This source code requires selection of a reference and test datasets by the user. Microsoft does not warrant the suitability or accuracy of any predictive model generated using this source code. You bear sole responsibility for selection of a training dataset and for evaluation and use of any resulting model
 ## :star: Features
 
 - Plug-and-play utilization
@@ -57,19 +53,21 @@ Install the project and get up and running with conda
 
 ```bash
 conda env create -f ./environment.yml --prefix ".venv"
-conda activate conda environment
+conda activate "./.venv"
 conda develop src
 ```
     
 :notebook_with_decorative_cover: Usage
 -------
-### Notebooks and Tutorials:
+Please start the tutorial [here](./notebooks/README.md).
+
+### Individual Notebooks:
 
 - Setup [[Tutorial](./notebooks/setup/README.md)]
 - Train a customized VAE to detect image-based drift [[Notebook](notebooks/setup/train_vae.ipynb)][[Script](src/scripts/vae/train.py)]
 - Train a frontal-only model that is presumed to be deployed for further experiments [[Notebook](./notebooks/setup/train_model.ipynb)][[Script](./src/scripts/finetune/train.py)]
-- Generate VAE latent representations on PadChest [[Notebook](./notebooks/setup/generate_vae_data.ipynb)][[Script](./src/scripts/vae/score.py)]
-- Generate model predictions on PadChest [[Notebook](./notebooks/setup/generate_model_score_data.ipynb)][[Script](./src/scripts/finetune/score.py)]
+- Generate VAE latent representations on PadChest [[Notebook](./notebooks/calculate_drift/generate_vae_data.ipynb)][[Script](./src/scripts/vae/score.py)]
+- Generate model predictions on PadChest [[Notebook](./notebooks/calculate_drift/generate_model_score_data.ipynb)][[Script](./src/scripts/finetune/score.py)]
 - Generate Performance and individual metrics trials:
     - Unmodified PadChest data stream [[Notebook](./notebooks/calculate_drift/run-generate-drift.ipynb)][[Script](./src/scripts/drift/generate-drift-csv.py)]
     - Performance degradation through hard data mining [[Notebook](./notebooks/calculate_drift/run-generate-drift.ipynb)][[Script](./src/scripts/drift/generate-drift-csv.py)]
@@ -81,6 +79,7 @@ conda develop src
 
 - [ ]  Your Chest X-Ray dataset should have **0,1** labels, e.g., **1** represents **presence of finding** and **0** is the **absence of a given finding**
 - [ ]  If there is no metadata or ground truth available, your drift analysis will be based on the Variational Autoencoder (VAE) and model output scores
+- [ ] Our tutorial uses AzureML, however our source code, scripts and notebooks are written such that they can used without AzureML!
 # 🤝 Contributing
 
 This project welcomes contributions and suggestions. Most contributions require you to agree to a Contributor License Agreement (CLA) declaring that you have the right to, and actually do, grant us the rights to use your contribution. For details, visit https://cla.opensource.microsoft.com.

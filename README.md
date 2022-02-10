@@ -4,19 +4,15 @@
 # Multi-Modal Drift Concordance For DL-based Automated Chest X-Ray Interpretation
 
 <p align="left">
-  <img alt="PyPI version" src="https://img.shields.io/pypi/v/libauc?color=blue&style=flat-square"/>
   <img alt="Python Version" src="https://img.shields.io/pypi/pyversions/libauc?color=blue&style=flat-square" />
   <img alt="PyTorch" src="https://img.shields.io/badge/PyTorch-1.8-yellow?color=blue&style=flat-square" />	
-  <img alt="Tensorflow" src="https://img.shields.io/badge/Tensorflow-2.0-yellow?color=blue&style=flat-square" />
-  <img alt="PyPI LICENSE" src="https://img.shields.io/github/license/yzhuoning/libauc?color=blue&logo=libauc&style=flat-square" />
+  <img alt="PyPI LICENSE" src="https://img.shields.io/badge/license-MIT-green" />
 </p>
 
-[**Website**](https://libauc.org/)
-| [**Updates**](https://libauc.org/news/)
-| [**Installation**](https://libauc.org/get-started/)
-| [**Tutorial**](https://github.com/Optimization-AI/LibAUC/tree/main/examples)
-| [**Research**](https://libauc.org/publications/)
-| [**Github**](https://github.com/Optimization-AI/LibAUC/)
+[**Paper**](https://arxiv.org/abs/2202.02833)
+| [**Issues**](https://github.com/microsoft/MedImaging-ModelDriftMonitoring/issues)
+| [**Tutorial**](./notebooks/README.md)
+| [**Github**](https://github.com/microsoft/MedImaging-ModelDriftMonitoring)
 
 MMC Drift aims to provide a system and set of experiments from the paper [CheXstray: Real-time Multi-Modal Data Concordance for Drift Detection in Medical Imaging AI](https://arxiv.org/abs/2202.02833) to test 
 engineered dataset and model drift scenarios
@@ -67,15 +63,19 @@ conda develop src
     
 :notebook_with_decorative_cover: Usage
 -------
-### Official Tutorials:
+### Notebooks and Tutorials:
 
-- Train a customized VAE to detect image-based drift [Notebook][Script]
-- Train a frontal-only model that is presumed to be deployed for further experiments [Notebook][Script]
-- Performance Degradation through hard data mining [Notebook][Script]
-- Clinical Workflow Failure through injecting lateral X-Ray images to a frontal-only pipeline [Notebook][Script]
-- Clinical Workflow Failure through injecting pediatric Chest X-Ray images to a frontal-only pipeline [Notebook][Script]
-- Unification of statistical and model performance-based drift metrics [Notebook][Script]
-
+- Setup [[Tutorial](./notebooks/setup/README.md)]
+- Train a customized VAE to detect image-based drift [[Notebook](notebooks/setup/train_vae.ipynb)][[Script](src/scripts/vae/train.py)]
+- Train a frontal-only model that is presumed to be deployed for further experiments [[Notebook](./notebooks/setup/train_model.ipynb)][[Script](./src/scripts/finetune/train.py)]
+- Generate VAE latent representations on PadChest [[Notebook](./notebooks/setup/generate_vae_data.ipynb)][[Script](./src/scripts/vae/score.py)]
+- Generate model predictions on PadChest [[Notebook](./notebooks/setup/generate_model_score_data.ipynb)][[Script](./src/scripts/finetune/score.py)]
+- Generate Performance and individual metrics trials:
+    - Unmodified PadChest data stream [[Notebook](./notebooks/calculate_drift/run-generate-drift.ipynb)][[Script](./src/scripts/drift/generate-drift-csv.py)]
+    - Performance degradation through hard data mining [[Notebook](./notebooks/calculate_drift/run-generate-drift.ipynb)][[Script](./src/scripts/drift/generate-drift-csv.py)]
+    - Clinical Workflow Failure through injecting lateral X-Ray images to a frontal-only pipeline [[Notebook](./notebooks/calculate_drift/run-generate-drift.ipynb)][[Script](./src/scripts/drift/generate-drift-csv.py)]
+    - Clinical Workflow Failure through injecting pediatric Chest X-Ray images to a frontal-only pipeline [*Coming Soon*]
+- Unification of statistical and model performance-based drift metrics [[Notebook](./notebooks/calculate_drift/calculate-mmc.ipynb)]
 ## :zap: Useful Tips
 
 - [ ]  Your Chest X-Ray dataset should have **0,1** labels, e.g., **1** represents **presence of finding** and **0** is the **absence of a given finding**
@@ -94,7 +94,7 @@ If you find MMC Drift useful in your work, please acknowledge our library and ci
 ```
 @misc{soin2022chexstray,
       title={CheXstray: Real-time Multi-Modal Data Concordance for Drift Detection in Medical Imaging AI}, 
-      author={Arjun Soin and Jameson Merkow and Jin Long and Joesph Paul Cohen and Smitha Saligrama and Stephen Kaiser and Steven Borg and Ivan Tarapov and Matthew P Lungren},
+      author={Arjun Soin and Jameson Merkow and Jin Long and Joseph Paul Cohen and Smitha Saligrama and Stephen Kaiser and Steven Borg and Ivan Tarapov and Matthew P Lungren},
       year={2022},
       eprint={2202.02833},
       archivePrefix={arXiv},
@@ -103,8 +103,8 @@ If you find MMC Drift useful in your work, please acknowledge our library and ci
 ```
 ## ✔️ Acknowledgements
 
- - [Microsoft Healthcare](https://awesomeopensource.com/project/elangosundar/awesome-README-templates)
- - [Stanford AIMI](https://github.com/matiassingers/awesome-readme)
+ - [Microsoft Healthcare](https://techcommunity.microsoft.com/t5/healthcare-and-life-sciences/bg-p/HealthcareAndLifeSciencesBlog)
+ - [Stanford AIMI](https://aimi.stanford.edu/)
 
 
 ## ©️ Trademarks

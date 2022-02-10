@@ -3,26 +3,32 @@
 ## Setup Azure ML Environment
 
 1. Load PadChest into AzureML
-    * Load Pediatric data into AzureML
-2. Download pretrained models and load into AzureML
-3. Train models (Optional)
-4. Generate Data Stream  using Models
+2. Download pretrained models
+3. Load into AzureML
+
 
 
 ## Steps
 
 ### Prerequisites:
 AzureML Workspace: https://docs.microsoft.com/en-us/azure/machine-learning/quickstart-create-resources#create-the-workspace
-* Compute resources: TODO
+
+#### Compute resources:
+
+`<TODO>`
 
 ### Load PadChest into Azure
 Loading Data: https://github.com/microsoft/Medical-Imaging-AI-RSNA-2021-Demo/tree/main/1.Load%20Data
 
-### Download pretrained models and load into AzureML
-TODO
+### Our pretrained models
+- Download from [here](TBD)
+Place in `<PROJECT_TOP>/models/`
 
-### Training Models {optional}
-(Link to notebooks)
+### Loading models into AzureML
 
-### Generate Data Stream using Models
-(Link to notebooks)
+- Register AzureML Models [[Notebook](./train_model.ipynb)]
+
+## Train your own models
+
+ - Training VAE [[Notebook](./train_vae.ipynb)][[Script](../../src/scripts/vae/train.py)]
+ - Training Classifier [[Notebook](./train_model.ipynb)][[Script](../../src/scripts/finetune/train.py)]

@@ -3,6 +3,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from PIL import ImageFile
 from azureml.core import Run
+
 from .base import VisionModuleBase
 
 ImageFile.LOAD_TRUNCATED_IMAGES = True
@@ -118,7 +119,7 @@ class VAE(VisionModuleBase):
         self.ignore_nonfrontal_loss = ignore_nonfrontal_loss
 
         if log_recon_images > 0:
-            from model_drift.metrics import ImageReconLogger
+            from .metrics import ImageReconLogger
             self.image_recon_logger = ImageReconLogger(image_dims, k=log_recon_images,
                                                        ignore_nonfrontal_loss=self.ignore_nonfrontal_loss)
 

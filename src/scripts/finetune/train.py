@@ -15,7 +15,7 @@ if library_path not in PYPATH:
 
 from model_drift.callbacks import IOMonitor
 from model_drift.models.finetune import CheXFinetune
-from model_drift.helpers import download_model_azure, get_azure_logger
+from model_drift.azure_utils import download_model_azure, get_azure_logger
 from model_drift.data.datamodules import PadChestDataModule
 from model_drift.data.transform import VisionTransformer
 

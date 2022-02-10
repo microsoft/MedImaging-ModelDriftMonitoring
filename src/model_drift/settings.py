@@ -1,6 +1,7 @@
 import os
-from environs import Env
 from pathlib import Path
+
+from environs import Env
 
 env = Env()
 env.read_env()  # read .env file, if it exists
@@ -10,6 +11,7 @@ TOP_DIR = Path(os.path.dirname(os.path.realpath(__file__))).parent.parent
 DATA_DIR = env.path("DATA_DIR", default=str(TOP_DIR.joinpath("data")))
 MODEL_DIR = env.path("MODEL_DIR", default=str(TOP_DIR.joinpath("models")))
 SRC_DIR = env.path("SRC", default=str(TOP_DIR.joinpath("src")))
+RESULTS_DIR = env.path("RESULTS_DIR", default=str(TOP_DIR.joinpath("results")))
 
 AZUREML_CONFIG = env.path("AZUREML_CONFIG", default=str(TOP_DIR))
 

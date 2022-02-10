@@ -150,6 +150,10 @@ sandbox/
 data/*
 !data/README.md
 
+# Results Directory
+results/*
+!results/README.md
+
 # Model Checkpoints 
 *.ckpt
 */.ckpt/*

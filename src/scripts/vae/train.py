@@ -15,7 +15,7 @@ if library_path not in PYPATH:
 
 from model_drift.callbacks import IOMonitor
 from model_drift.models.vae import VAE
-from model_drift.helpers import get_azure_logger
+from model_drift.azure_utils import get_azure_logger
 from model_drift.data.datamodules import PadChestDataModule, CheXpertDataModule
 from model_drift.data.transform import VisionTransformer
 

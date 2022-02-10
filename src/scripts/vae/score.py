@@ -5,6 +5,8 @@ import torch
 from argparse import Namespace
 from pathlib import Path
 
+import model_drift.azure_utils
+
 library_path = str(Path(__file__).parent.parent.parent)
 PYPATH = os.environ.get("PYTHONPATH", "").split(":")
 if library_path not in PYPATH:
@@ -64,14 +66,14 @@ args.gpus = num_gpus
 args.output_dir = args.output_dir.replace("//", "/")
 
 if args.add_name_to_output and args.run_azure:
-    run_name = helpers.get_run_name()
+    run_name = model_drift.azure_utils.get_run_name()
     args.output_dir = os.path.join(args.output_dir, run_name)
 
 if not os.path.exists(args.output_dir):
     os.makedirs(args.output_dir)
 
 if args.run_azure:
-    args.model = helpers.download_model_azure(args.model, args.output_dir)
+    args.model = model_drift.azure_utils.download_model_azure(args.model, args.output_dir)
 
 args.default_root_dir = args.output_dir
 

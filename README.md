@@ -11,7 +11,6 @@
   <img alt="PyPI LICENSE" src="https://img.shields.io/github/license/yzhuoning/libauc?color=blue&logo=libauc&style=flat-square" />
 </p>
 
-
 [**Website**](https://libauc.org/)
 | [**Updates**](https://libauc.org/news/)
 | [**Installation**](https://libauc.org/get-started/)
@@ -61,7 +60,7 @@ Rapidly expanding Clinical AI applications worldwide have the potential to impac
 Install the project and get up and running with conda
 
 ```bash
-conda env create -f .\environment.yml --prefix ".venv"
+conda env create -f ./environment.yml --prefix ".venv"
 conda activate conda environment
 conda develop src
 ```

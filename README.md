@@ -76,18 +76,23 @@ conda develop src
     - Clinical Workflow Failure through injecting lateral X-Ray images to a frontal-only pipeline [[Notebook](./notebooks/calculate_drift/run-generate-drift.ipynb)][[Script](./src/scripts/drift/generate-drift-csv.py)]
     - Clinical Workflow Failure through injecting pediatric Chest X-Ray images to a frontal-only pipeline [*Coming Soon*]
 - Unification of statistical and model performance-based drift metrics [[Notebook](./notebooks/calculate_drift/calculate-mmc.ipynb)]
+- Explore VAE latent space [[Notebook](./notebooks/appendix/explore-vae-latent-space.ipynb)]
 ## :zap: Useful Tips
 
 - [ ]  Your Chest X-Ray dataset should have **0,1** labels, e.g., **1** represents **presence of finding** and **0** is the **absence of a given finding**
 - [ ]  If there is no metadata or ground truth available, your drift analysis will be based on the Variational Autoencoder (VAE) and model output scores
-## 🤝 Contributing
+# 🤝 Contributing
 
 This project welcomes contributions and suggestions. Most contributions require you to agree to a Contributor License Agreement (CLA) declaring that you have the right to, and actually do, grant us the rights to use your contribution. For details, visit https://cla.opensource.microsoft.com.
 
-When you submit a pull request, a CLA bot will automatically determine whether you need to provide a CLA and decorate the PR appropriately (e.g., status check, comment). Simply follow the instructions provided by the bot. You will only need to do this once across all repos using our CLA.
+When you submit a [pull request](https://github.com/microsoft/MedImaging-ModelDriftMonitoring/pulls), a CLA bot will automatically determine whether you need to provide a CLA and decorate the PR appropriately (e.g., status check, comment). Simply follow the instructions provided by the bot. You will only need to do this once across all repos using our CLA.
 
-This project has adopted the Microsoft Open Source Code of Conduct. For more information see the Code of Conduct FAQ or contact opencode@microsoft.com with any additional questions or comments.
-## 📖 Citation
+These are the ways to contribute:
+- [Submit bugs](https://github.com/microsoft/MedImaging-ModelDriftMonitoring/issues) and help us verify fixes as they are checked in.
+- Contribute your own source code changes through a [pull request](https://github.com/microsoft/MedImaging-ModelDriftMonitoring/pulls).
+
+_This project has adopted the Microsoft Open Source Code of Conduct. For more information see the [Code of Conduct FAQ](https://microsoft.github.io/codeofconduct/faq/) or contact opencode@microsoft.com with any additional questions or comments._
+# 📖 Citation
 
 If you find MMC Drift useful in your work, please acknowledge our library and cite the following paper:
 
@@ -101,12 +106,36 @@ If you find MMC Drift useful in your work, please acknowledge our library and ci
       primaryClass={eess.IV}
 }
 ```
-## ✔️ Acknowledgements
+# ✔️ Acknowledgements
 
  - [Microsoft Healthcare](https://techcommunity.microsoft.com/t5/healthcare-and-life-sciences/bg-p/HealthcareAndLifeSciencesBlog)
  - [Stanford AIMI](https://aimi.stanford.edu/)
 
+# :eyes: Extras
 
-## ©️ Trademarks
+Checkout these other projects from Microsoft!
+
+## InnerEye - Advanced Machine Learning algorithms for medical imaging
+If you are looking for advanced algorithms for medical image analysis that harness the power of Azure-based cloud computing - make sure to check out the amazing work done by the InnerEye team from Microsoft Research Cambridge and their open-source repositories: 
+* [InnerEye-DeepLearning](https://github.com/microsoft/InnerEye-DeepLearning) for advanced medical image analysis algorithms 
+* [HI-ML](https://github.com/microsoft/hi-ml) - building blocks for AI/ML scenarios for medical applications: 
+
+## DICOM Service
+A real world medical imaging AI setup would leverage DICOM data and would benefit from storing DICOM images in the cloud. You can explore the services that Microsoft provides to manage DICOM and FHIR data in the cloud: 
+* [DICOM service](https://docs.microsoft.com/en-us/azure/healthcare-apis/dicom/dicom-services-overview)
+* [FHIR service](https://docs.microsoft.com/en-us/azure/healthcare-apis/fhir/overview)
+
+
+<!-- * [Microsoft Healthcare](https://www.microsoft.com/en-us/industry/health/microsoft-cloud-for-healthcare) -->
+## Microsoft Medical Imaging AI RSNA 2021 Demo
+This demo will walk you through the steps that a data science team would typically undertake and describe the use of Microsoft tools as well as provide some custom code to take you through the steps. The focus of this demo is not on the algorithms used to build the best performing system, but rather the steps and tools that are needed to get one there. The same tools and principles could be applied to many other types of medical imaging datasets. 
+* [GitHub](https://github.com/microsoft/Medical-Imaging-AI-RSNA-2021-Demo)
+
+## Learning materials
+Here are some learning materials if you would like to explore some of the Microsoft's AI tools further: 
+* [A 30 day challenge](https://docs.microsoft.com/en-us/learn/challenges?id=8E1F62A7-99E3-48E4-9EC9-1FFFB99EE9AF&wt.mc_id=cloudskillschallenge_8E1F62A7-99E3-48E4-9EC9-1FFFB99EE9AF)  focusing on learning AI fundamentals
+* [Interactive introduction into Azure ML](https://docs.microsoft.com/en-us/learn/modules/intro-to-azure-ml/)
+
+# ©️ Trademarks
 
 This project may contain trademarks or logos for projects, products, or services. Authorized use of Microsoft trademarks or logos is subject to and must follow Microsoft's Trademark & Brand Guidelines. Use of Microsoft trademarks or logos in modified versions of this project must not cause confusion or imply Microsoft sponsorship. Any use of third-party trademarks or logos are subject to those third-party's policies.

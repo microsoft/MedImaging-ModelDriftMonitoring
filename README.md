@@ -59,22 +59,9 @@ conda develop src
     
 :notebook_with_decorative_cover: Usage
 -------
-Please start the tutorial [here](./notebooks/README.md).
-
-### Individual Notebooks:
-
-- Setup [[Tutorial](./notebooks/setup/README.md)]
-- Train a customized VAE to detect image-based drift [[Notebook](notebooks/setup/train_vae.ipynb)][[Script](src/scripts/vae/train.py)]
-- Train a frontal-only model that is presumed to be deployed for further experiments [[Notebook](./notebooks/setup/train_model.ipynb)][[Script](./src/scripts/finetune/train.py)]
-- Generate VAE latent representations on PadChest [[Notebook](./notebooks/calculate_drift/generate_vae_data.ipynb)][[Script](./src/scripts/vae/score.py)]
-- Generate model predictions on PadChest [[Notebook](./notebooks/calculate_drift/generate_model_score_data.ipynb)][[Script](./src/scripts/finetune/score.py)]
-- Generate Performance and individual metrics trials:
-    - Unmodified PadChest data stream [[Notebook](./notebooks/calculate_drift/run-generate-drift.ipynb)][[Script](./src/scripts/drift/generate-drift-csv.py)]
-    - Performance degradation through hard data mining [[Notebook](./notebooks/calculate_drift/run-generate-drift.ipynb)][[Script](./src/scripts/drift/generate-drift-csv.py)]
-    - Clinical Workflow Failure through injecting lateral X-Ray images to a frontal-only pipeline [[Notebook](./notebooks/calculate_drift/run-generate-drift.ipynb)][[Script](./src/scripts/drift/generate-drift-csv.py)]
-    - Clinical Workflow Failure through injecting pediatric Chest X-Ray images to a frontal-only pipeline [*Coming Soon*]
-- Unification of statistical and model performance-based drift metrics [[Notebook](./notebooks/calculate_drift/calculate-mmc.ipynb)]
-- Explore VAE latent space [[Notebook](./notebooks/appendix/explore-vae-latent-space.ipynb)]
+- To test our MMC code using pre-obtained individual metrics, start [here](./notebooks/calculate_drift/calculate-mmc.ipynb)
+- If you would like to train your own models, and generate your own metrics, start [here](./notebooks/setup/README.md).
+- Links to individual notebooks are [here](./notebooks/README.md#individual-notebooks)
 ## :zap: Useful Tips
 
 - [ ]  Your Chest X-Ray dataset should have **0,1** labels, e.g., **1** represents **presence of finding** and **0** is the **absence of a given finding**

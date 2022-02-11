@@ -1,6 +1,8 @@
 # Tutorial
 
-Please start our tutorial [here](./setup/README.md).
+To test our MMC code using pre-obtained individual metrics, start [here](./calculate_drift/calculate-mmc.ipynb)
+
+If you would like to train your own models, and generate your own metrics, start [here](./setup/README.md).
 
 ## Notice
 > This code is provided for research and development use only. This code is not intended for use in clinical decision-making or for any other clinical use and the performance of the code for clinical use has not been established. This source code requires selection of a reference and test datasets by the user. Microsoft does not warrant the suitability or accuracy of any predictive model generated using this source code. You bear sole responsibility for selection of a training dataset and for evaluation and use of any resulting model
@@ -9,7 +11,7 @@ Please start our tutorial [here](./setup/README.md).
 ## Individual Notebooks
 
 - Setup [[Tutorial](./setup/README.md)]
-- Train a customized VAE to detect image-based drift [[Notebook](setup/train_vae.ipynb)][[Script](src/scripts/vae/train.py)]
+- Train a customized VAE to detect image-based drift [[Notebook](setup/train_vae.ipynb)][[Script](../src/scripts/vae/train.py)]
 - Train a frontal-only model that is presumed to be deployed for further experiments [[Notebook](./setup/train_model.ipynb)][[Script](../src/scripts/finetune/train.py)]
 - Generate VAE latent representations on PadChest [[Notebook](./calculate_drift/generate_vae_data.ipynb)][[Script](../src/scripts/vae/score.py)]
 - Generate model predictions on PadChest [[Notebook](./calculate_drift/generate_model_score_data.ipynb)][[Script](../src/scripts/finetune/score.py)]

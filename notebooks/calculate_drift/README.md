@@ -24,5 +24,5 @@ Please follow this guide:
 _Note_: Our individual metrics are provided as part of this release. 
 
 ## Unifying Metrics
-After you have generated individual metrics, we use these to generate our unified metric, <img src="https://render.githubusercontent.com/render/math?math=\mathit{MMC}">. Please see this guide:
-- Calculate and plot <img src="https://render.githubusercontent.com/render/math?math=\mathit{MMC}">: [Notebook](./calculate-mmc.ipynb)
+After you have generated individual metrics, we use these to generate our unified metric, <img src="https://render.githubusercontent.com/render/math?math=MMC">. Please see this guide:
+- Calculate and plot <img src="https://render.githubusercontent.com/render/math?math=MMC">: [Notebook](./calculate-mmc.ipynb)

@@ -78,6 +78,15 @@ These are the ways to contribute:
 - Contribute your own source code changes through a [pull request](https://github.com/microsoft/MedImaging-ModelDriftMonitoring/pulls).
 
 _This project has adopted the Microsoft Open Source Code of Conduct. For more information see the [Code of Conduct FAQ](https://microsoft.github.io/codeofconduct/faq/) or contact opencode@microsoft.com with any additional questions or comments._
+
+
+# :heart: Support
+
+## How to file issues and get help  
+
+This project uses GitHub [**issues**](https://github.com/microsoft/MedImaging-ModelDriftMonitoring/issues) to track bugs, feature requests, to ask for help and other questions about using this project. Please search the existing 
+issues before filing new issues to avoid duplicates.  For new issues, file your bug or 
+feature request as a new Issue.
 # 📖 Citation
 
 If you find MMC Drift useful in your work, please acknowledge our library and cite the following paper:

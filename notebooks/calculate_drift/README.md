@@ -7,15 +7,15 @@
 Make sure you have a working AzureML Workspace, you have uploaded and created a dataset from the PadChest data, and uploaded our pretrained classifer and VAE (or trained your own).  If not, please complete our [setup tutorial](../setup/README.md).
 
 
-## Generating VAE <img src="https://render.githubusercontent.com/render/math?math=Z"> and Predicted Probabilities
+## Generating VAE <img src="https://render.githubusercontent.com/render/math?math=\Large Z"> and Predicted Probabilities
 You will need to generate VAE <img src="https://render.githubusercontent.com/render/math?math=Z"> vectors and predicted probabilities for each of the images in the PadChest data.
 Please follow these guides:
-- Generating VAE $Z$: [Notebook](./generate_vae_data.ipynb)
+- Generating VAE <img style="transform: translateY(0.1em); background: white;" src="https://render.githubusercontent.com/render/math?math=\large Z">: [Notebook](./generate_vae_data.ipynb)
 - Generating predicted probabilities: [Notebook](./generate_model_score_data.ipynb.ipynb)
 
 _Note_: Our VAE and predictions are available upon request.
 
-## Calculate Individual Metrics:
+## Calculate Individual Metrics (<img style="transform: translateY(0.1em);" src="https://render.githubusercontent.com/render/math?math=\Large%5Chat%7B%5Cpsi%7D_i">):
 Once you have <img src="https://render.githubusercontent.com/render/math?math=Z"> vectors and predicted probabilities you will need to calculate individual metrics using that data.
 To this, you must create a result dataset in AzureML and to place the jsonl files, and PadChest metadata csv, then run a [script](../../src/scripts/drift/generate-drift-csv.py) to calculate metrics for PadChest.
 Please follow this guide:

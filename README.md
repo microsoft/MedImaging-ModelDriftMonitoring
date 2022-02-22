@@ -1,5 +1,5 @@
 # Multi-Modal Drift Concordance For DL-based Automated Chest X-Ray Interpretation
-## [**Paper**](https://arxiv.org/abs/2202.02833) | [**Issues**](https://github.com/microsoft/MedImaging-ModelDriftMonitoring/issues) | [**Tutorial**](./notebooks/README.md) | [**Github**](https://github.com/microsoft/MedImaging-ModelDriftMonitoring)
+## [**Paper**](https://arxiv.org/abs/2202.02833) | [**Issues**](https://github.com/microsoft/MedImaging-ModelDriftMonitoring/issues)
 
 
 <p align="left">
@@ -8,13 +8,12 @@
   <img alt="PyPI LICENSE" src="https://img.shields.io/badge/license-MIT-green" />
 </p>
 
-MMC Drift aims to provide a system and set of experiments from the paper [CheXstray: Real-time Multi-Modal Data Concordance for Drift Detection in Medical Imaging AI](https://arxiv.org/abs/2202.02833) to test 
+MMC Drift aims to provide a system and a set of experiments from the paper [CheXstray: Real-time Multi-Modal Data Concordance for Drift Detection in Medical Imaging AI](https://arxiv.org/abs/2202.02833) to test 
 engineered dataset and model drift scenarios
 that simulate different indicators for medical imaging AI drift in a production environment. If you use or like our library, please star⭐ our repo. Thank you!
 
 Our framework has a
-modular design and can be used in a plug-and-play manner to test multiple input drift modalities and scenarios with
-include or new datasets.
+modular design and can be used in a plug-and-play manner to test multiple input drift modalities and scenarios that may include new datasets.
 
 ## :mag: Why Multi-Modal Drift?
 
@@ -108,7 +107,7 @@ If you find MMC Drift useful in your work, please acknowledge our library and ci
 
 # :eyes: Extras
 
-Checkout these other projects from Microsoft!
+Check out these other medical imaging AI projects from Microsoft!
 
 ## InnerEye - Advanced Machine Learning algorithms for medical imaging
 If you are looking for advanced algorithms for medical image analysis that harness the power of Azure-based cloud computing - make sure to check out the amazing work done by the InnerEye team from Microsoft Research Cambridge and their open-source repositories: 
@@ -125,6 +124,9 @@ A real world medical imaging AI setup would leverage DICOM data and would benefi
 ## Microsoft Medical Imaging AI RSNA 2021 Demo
 This demo will walk you through the steps that a data science team would typically undertake and describe the use of Microsoft tools as well as provide some custom code to take you through the steps. The focus of this demo is not on the algorithms used to build the best performing system, but rather the steps and tools that are needed to get one there. The same tools and principles could be applied to many other types of medical imaging datasets. 
 * [GitHub](https://github.com/microsoft/Medical-Imaging-AI-RSNA-2021-Demo)
+
+## Medical Imaging AI Scenarios
+TBD: Andreas' demo
 
 ## Learning materials
 Here are some learning materials if you would like to explore some of the Microsoft's AI tools further: 

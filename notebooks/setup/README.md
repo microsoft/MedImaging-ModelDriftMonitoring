@@ -15,7 +15,7 @@ To run our experiments on AzureML, you will need to create an AzureML workspace,
 Our tutorial used two compute clusters, one for vae/model score generation, and another for metric calculation.
 For vae/model score generation, we recommend a cluster VM that has 4 GPUs and 128+ GB of ram.
 For metric calculation you may reuse the vae/model cluster or create another CPU only cluster. We recommend a CPU cluster with at least 24 cores and 64+ GB of ram.
-These compute clusters are used throughout our tutorial.  Our GPU cluster is named `"nc24-uswest2"` and our CPU cluster is named `"cpu-cluster"`.  If you create clusters with different names, as you go through the tutorial, changes these compute targets whereever you see them.
+These compute clusters are used throughout our tutorial.  Our GPU cluster is named `"nc24-uswest2"` and our CPU cluster is named `"cpu-cluster"`.  If you create clusters with different names, as you go through the tutorial, change these compute targets wherever you see them.
 
 For reference, we used:
 

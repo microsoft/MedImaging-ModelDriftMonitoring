@@ -17,7 +17,7 @@ modular design and can be used in a plug-and-play manner to test multiple input 
 
 ## :mag: Why Multi-Modal Drift?
 
-Rapidly expanding Clinical AI applications worldwide have the potential to impact to all areas of medical practice. Medical imaging applications constitute a vast majority of approved clinical AI applications.  A fundamental question remains: What happens after the AI model goes into production?
+Rapidly expanding Clinical AI applications worldwide have the potential to impact all areas of medical practice. Medical imaging applications constitute a vast majority of approved clinical AI applications.  A fundamental question remains: What happens after the AI model goes into production?
 
  We use the CheXpert and PadChest public datasets to build and test a medical imaging AI drift monitoring workflow that tracks data and model drift without contemporaneous ground truth. We simulate drift in multiple experiments to compare model performance with our novel multi-modal drift metric, which uses DICOM metadata, image appearance representation from a variational autoencoder (VAE), and model output probabilities as input. Through experimentation, we demonstrate a strong proxy for ground truth performance using unsupervised distributional shifts in relevant metadata, predicted probabilities, and VAE latent representation. 
  
@@ -102,12 +102,13 @@ If you find MMC Drift useful in your work, please acknowledge our library and ci
 ```
 # ✔️ Acknowledgements
 
- - [Microsoft Healthcare](https://techcommunity.microsoft.com/t5/healthcare-and-life-sciences/bg-p/HealthcareAndLifeSciencesBlog)
+ - [Microsoft Healthcare](https://cloudblogs.microsoft.com/industry-blog/health/)
  - [Stanford AIMI](https://aimi.stanford.edu/)
 
 # :eyes: Extras
 
-Check out these other medical imaging AI projects from Microsoft!
+Check out these other projects from Microsoft!
+
 
 ## InnerEye - Advanced Machine Learning algorithms for medical imaging
 If you are looking for advanced algorithms for medical image analysis that harness the power of Azure-based cloud computing - make sure to check out the amazing work done by the InnerEye team from Microsoft Research Cambridge and their open-source repositories: 

@@ -1,0 +1,2 @@
+# Results Directory
+This directory is meant to hold results from generate vae and classifier scores.  It also stored metric result CSVs when downloading from AzureML.  Place a copy of the full PadChest CSV here as well.

@@ -120,14 +120,14 @@ A real world medical imaging AI setup would leverage DICOM data and would benefi
 * [DICOM service](https://docs.microsoft.com/en-us/azure/healthcare-apis/dicom/dicom-services-overview)
 * [FHIR service](https://docs.microsoft.com/en-us/azure/healthcare-apis/fhir/overview)
 
-
-<!-- * [Microsoft Healthcare](https://www.microsoft.com/en-us/industry/health/microsoft-cloud-for-healthcare) -->
 ## Microsoft Medical Imaging AI RSNA 2021 Demo
 This demo will walk you through the steps that a data science team would typically undertake and describe the use of Microsoft tools as well as provide some custom code to take you through the steps. The focus of this demo is not on the algorithms used to build the best performing system, but rather the steps and tools that are needed to get one there. The same tools and principles could be applied to many other types of medical imaging datasets. 
 * [GitHub](https://github.com/microsoft/Medical-Imaging-AI-RSNA-2021-Demo)
 
 ## Medical Imaging AI Scenarios
-TBD: Andreas' demo
+The content in this repository includes several Python notebooks that cover medical imaging use cases based on classification, object detection and instance segmentation. All use cases are based on publicly available datasets like brain RMI scans, cell micrographs, chest x-ray images and more. 
+
+* [Github](https://github.com/Azure/medical-imaging)
 
 ## Learning materials
 Here are some learning materials if you would like to explore some of the Microsoft's AI tools further: 

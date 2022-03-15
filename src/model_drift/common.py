@@ -1,6 +1,10 @@
+#  ------------------------------------------------------------------------------------------
+#  Copyright (c) Microsoft Corporation. All rights reserved.
+#  Licensed under the MIT License (MIT). See LICENSE in the repo root for license information.
+#  ------------------------------------------------------------------------------------------
 from torchvision import transforms
 
-from data.dataset import IMAGENET_MEAN, IMAGENET_STD
+from .data.dataset import IMAGENET_MEAN, IMAGENET_STD
 
 
 def get_transform(image_size, normalization=(IMAGENET_MEAN, IMAGENET_STD), channels=3, **kwargs):

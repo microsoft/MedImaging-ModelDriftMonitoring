@@ -3,6 +3,7 @@
 #  Licensed under the MIT License (MIT). See LICENSE in the repo root for license information.
 #  ------------------------------------------------------------------------------------------
 import os
+from pathlib import Path
 
 import numpy as np
 import pandas as pd
@@ -10,6 +11,7 @@ import six
 import torch
 from PIL import Image
 from PIL import ImageFile
+import pydicom
 from torch.utils.data import Dataset
 
 ImageFile.LOAD_TRUNCATED_IMAGES = True
@@ -247,3 +249,107 @@ class MIDRCDataset(BaseDataset):
             self.image_labels.append(labels)
             self.image_index.append(row['ImageId'][:-3] + 'png')
             self.recon_image_path.append(row['ImageId'][:-3] + 'png')
+
+
+class MGBCXRDataset(BaseDataset):
+    ALLOWABLE_SOP_CLASSES = (
+        pydicom.uid.ComputedRadiographyImageStorage,
+        pydicom.uid.DigitalXRayImageStorageForPresentation,
+    )
+    ALLOWABLE_MODALITIES = ('CR', 'DX')
+    ALLOWABLE_BODY_PARTS = ('CHEST',)
+    ALLOWABLE_PIS = ('MONOCHROME1', 'MONOCHROME2')
+    LABEL_COLUMNS = (
+        'Enlarged Cardiomediastinum',
+        'Cardiomegaly',
+        'Lung Lesion',
+        'Lung Opacity',
+        'Edema',
+        'Consolidation',
+        'Pneumonia',
+        'Atelectasis',
+        'Pneumothorax',
+        'Pleural Effusion',
+        'Pleural Other',
+        'Fracture',
+        'Support Devices',
+    )
+
+    def prepare_data(self):
+        # Get all image paths and image labels from dataframe
+        data_root = Path(self.dataframe_or_csv)
+        if not data_root.is_dir():
+            raise ValueError(
+                "Specified dataframe location should be a directory"
+            )
+        labels_df = pd.read_csv(
+            data_root / "csv" / "labels.csv",
+            dtype={
+                'AccessionNumber': str,
+                'PatientID': str,
+                'StudyInstanceUID': str,
+            },
+            index_col=0,
+        )
+        dcm_df = pd.read_csv(
+            data_root / "csv" / "dicom_inventory.csv",
+            dtype=str,
+            index_col=0,
+        )
+
+        # Strip 0s from IDs so that they match between dataframes
+        dcm_df['PatientID'] = dcm_df.PatientID.str.lstrip('0')
+        dcm_df['AccessionNumber'] = dcm_df.AccessionNumber.str.lstrip('0')
+
+        # Apply basic inclusion/exclusion criteria
+        dcm_df["is_frontal"] = dcm_df.ViewPosition.isin(('AP', 'PA'))
+        dcm_df = dcm_df[
+            dcm_df.SOPClassUID.isin(self.ALLOWABLE_SOP_CLASSES) &
+            dcm_df.Modality.isin(self.ALLOWABLE_MODALITIES) &
+            dcm_df.BodyPartExamined.isin(self.ALLOWABLE_BODY_PARTS) &
+            dcm_df.PhotometricInterpretation.isin(self.ALLOWABLE_PIS)
+        ].copy()
+        if self.frontal_only:
+            dcm_df = dcm_df[dcm_df.is_frontal].copy()
+
+        joined_df = dcm_df.merge(
+            labels_df,
+            how='left',
+            on=('PatientID', 'AccessionNumber'),
+        )
+
+        for _, row in joined_df.iterrows():
+            # Read in image from path
+            image_path = (
+                self.folder_dir /
+                Path(row.filepath)
+            )
+            self.image_paths.append(image_path)
+
+            labels = []
+            for c in self.LABEL_COLUMNS:
+                val = float(row[c])
+                if val == 1.0 or val == -1.0:
+                    # NB equivocal treated as positive
+                    labels.append(1)
+                else:
+                    # NB this means that "not mentioned" is treated as negative
+                    labels.append(0)
+            self.image_labels.append(labels)
+
+            self.frontal.append(float(row.is_frontal))
+            image_id = f"{row.PatientID}_{row.AccessionNumber}_{row.SOPInstanceUID}"
+            self.image_index.append(image_id)
+            self.recon_image_path.append(image_id + '.png')
+
+
+    def read_image(self, image_path):
+        dcm = pydicom.dcmread(image_path)
+        arr = dcm.pixel_array
+        max_val = 2 ** dcm.BitsStored - 1
+        if dcm.PhotometricInterpretation == "MONOCHROME1":
+            arr = max_val - arr
+        arr = (arr / max_val) * 255
+        im = Image.fromarray(arr.astype(np.uint8))
+        im.convert("RGB")
+        return im

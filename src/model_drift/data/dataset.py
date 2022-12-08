@@ -252,13 +252,6 @@ class MIDRCDataset(BaseDataset):
 
 
 class MGBCXRDataset(BaseDataset):
-    ALLOWABLE_SOP_CLASSES = (
-        pydicom.uid.ComputedRadiographyImageStorage,
-        pydicom.uid.DigitalXRayImageStorageForPresentation,
-    )
-    ALLOWABLE_MODALITIES = ('CR', 'DX')
-    ALLOWABLE_BODY_PARTS = ('CHEST',)
-    ALLOWABLE_PIS = ('MONOCHROME1', 'MONOCHROME2')
     LABEL_COLUMNS = (
         'Enlarged Cardiomediastinum',
         'Cardiomegaly',
@@ -276,49 +269,12 @@ class MGBCXRDataset(BaseDataset):
     )
 
     def prepare_data(self):
-        # Get all image paths and image labels from dataframe
-        data_root = Path(self.dataframe_or_csv)
-        if not data_root.is_dir():
-            raise ValueError(
-                "Specified dataframe location should be a directory"
-            )
-        labels_df = pd.read_csv(
-            data_root / "csv" / "labels.csv",
-            dtype={
-                'AccessionNumber': str,
-                'PatientID': str,
-                'StudyInstanceUID': str,
-            },
-            index_col=0,
-        )
-        dcm_df = pd.read_csv(
-            data_root / "csv" / "dicom_inventory.csv",
-            dtype=str,
-            index_col=0,
-        )
+        if isinstance(self.dataframe_or_csv, pd.DataFrame):
+            df = self.dataframe_or_csv
+        else:
+            df = pd.read_csv(self.dataframe_or_csv, dtype=str, index_col=0)
 
-        # Strip 0s from IDs so that they match between dataframes
-        dcm_df['PatientID'] = dcm_df.PatientID.str.lstrip('0')
-        dcm_df['AccessionNumber'] = dcm_df.AccessionNumber.str.lstrip('0')
-
-        # Apply basic inclusion/exclusion criteria
-        dcm_df["is_frontal"] = dcm_df.ViewPosition.isin(('AP', 'PA'))
-        dcm_df = dcm_df[
-            dcm_df.SOPClassUID.isin(self.ALLOWABLE_SOP_CLASSES) &
-            dcm_df.Modality.isin(self.ALLOWABLE_MODALITIES) &
-            dcm_df.BodyPartExamined.isin(self.ALLOWABLE_BODY_PARTS) &
-            dcm_df.PhotometricInterpretation.isin(self.ALLOWABLE_PIS)
-        ].copy()
-        if self.frontal_only:
-            dcm_df = dcm_df[dcm_df.is_frontal].copy()
-
-        joined_df = dcm_df.merge(
-            labels_df,
-            how='left',
-            on=('PatientID', 'AccessionNumber'),
-        )
-
-        for _, row in joined_df.iterrows():
+        for _, row in df.iterrows():
             # Read in image from path
             image_path = (
                 self.folder_dir /

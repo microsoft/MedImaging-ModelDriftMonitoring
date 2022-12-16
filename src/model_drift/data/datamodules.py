@@ -606,7 +606,12 @@ class MGBCXRDataModule(BaseDatamodule):
             **self.val_kwargs,
         )
 
-        self.test = pd.concat([self.train, self.val], ignore_index=True)
+        # For now, test is simply the entire dataset
+        self.test = labels_df.merge(
+            dcm_df,
+            how='inner',
+            on=('PatientID', 'AccessionNumber'),
+        )
         self.test_dataset = self.__dataset_cls__(
             self.data_folder,
             self.test,

@@ -252,20 +252,22 @@ class MIDRCDataset(BaseDataset):
 
 
 class MGBCXRDataset(BaseDataset):
+    # TODO confirm labels
     LABEL_COLUMNS = (
-        'Enlarged Cardiomediastinum',
-        'Cardiomegaly',
-        'Lung Lesion',
-        'Lung Opacity',
-        'Edema',
-        'Consolidation',
-        'Pneumonia',
         'Atelectasis',
-        'Pneumothorax',
+        'Cardiomegaly',
+        'Consolidation',
+        'Edema',
+        'Lung Lesion',
+        'No Finding',
+        'Lung Opacity',
+        'Pleural Other',  # merge ptx here?
         'Pleural Effusion',
-        'Pleural Other',
-        'Fracture',
-        'Support Devices',
+        'Pneumonia',
+        # 'Pneumothorax',
+        # 'Support Devices',
+        # 'Enlarged Cardiomediastinum',
+        # 'Fracture',
     )
 
     def prepare_data(self):
@@ -274,6 +276,7 @@ class MGBCXRDataset(BaseDataset):
         else:
             df = pd.read_csv(self.dataframe_or_csv, dtype=str, index_col=0)
 
+        self.folder_dir = Path(self.folder_dir)
         for _, row in df.iterrows():
             # Read in image from path
             image_path = (
@@ -307,5 +310,5 @@ class MGBCXRDataset(BaseDataset):
             arr = max_val - arr
         arr = (arr / max_val) * 255
         im = Image.fromarray(arr.astype(np.uint8))
-        im.convert("RGB")
+        im = im.convert("RGB")
         return im

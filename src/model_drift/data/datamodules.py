@@ -159,6 +159,9 @@ class BaseDatamodule(pl.LightningDataModule):
             pin_memory=True,
         )
 
+    def predict_dataloader(self):
+        return self.test_dataloader()
+
     @classmethod
     def add_argparse_args(cls, parser, **kwargs):
         group = parser.add_argument_group("data")
@@ -530,9 +533,13 @@ class MGBCXRDataModule(BaseDatamodule):
         )
         self.csv_folder = csv_folder
 
+    @property
+    def labels(self):
+        return self.__dataset_cls__.LABEL_COLUMNS
+
     def load_datasets(self, stage=None) -> None:
         labels_df = pd.read_csv(
-            os.path.join(self.csv_folder / "labels.csv"),
+            os.path.join(self.csv_folder, "labels.csv"),
             dtype={
                 'AccessionNumber': str,
                 'PatientID': str,
@@ -553,7 +560,7 @@ class MGBCXRDataModule(BaseDatamodule):
         ].copy()
 
         dcm_df = pd.read_csv(
-            os.path.join(self.csv_folder / "dicom_inventory.csv"),
+            os.path.join(self.csv_folder, "dicom_inventory.csv"),
             dtype=str,
             index_col=0,
         )
@@ -599,6 +606,21 @@ class MGBCXRDataModule(BaseDatamodule):
             **self.val_kwargs,
         )
 
-        self.test = pd.DataFrame([])
-        self.test_dataset = []
-        self.predict_dataset = []
+        self.test = pd.concat([self.train, self.val], ignore_index=True)
+        self.test_dataset = self.__dataset_cls__(
+            self.data_folder,
+            self.test,
+            transform=self.test_transforms,
+            **self.test_kwargs,
+        )
+
+    @classmethod
+    def add_argparse_args(cls, parser, **kwargs):
+        parser = super().add_argparse_args(parser, **kwargs)
+        group = parser.add_argument_group("mgb")
+
+        group.add_argument(
+            "--csv_folder", type=str, help="Path to the CSV directory",
+            default=None)
+
+        return parser

@@ -308,7 +308,8 @@ class MGBCXRDataset(BaseDataset):
         max_val = 2 ** dcm.BitsStored - 1
         if dcm.PhotometricInterpretation == "MONOCHROME1":
             arr = max_val - arr
-        arr = (arr / max_val) * 255
+        # arr = (arr / max_val) * 255
+        arr = ((arr - arr.min()) / (arr.max() - arr.min())) * 255
         im = Image.fromarray(arr.astype(np.uint8))
         im = im.convert("RGB")
         return im

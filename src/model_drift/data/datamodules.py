@@ -581,7 +581,7 @@ class MGBCXRDataModule(BaseDatamodule):
         self.train = train_labels_df.merge(
             dcm_df,
             how='inner',
-            on=('PatientID', 'AccessionNumber'),
+            on=('PatientID', 'AccessionNumber', 'StudyInstanceUID'),
         )
         if self.train_kwargs["frontal_only"]:
             self.train = self.train[self.train.is_frontal].copy()
@@ -595,7 +595,7 @@ class MGBCXRDataModule(BaseDatamodule):
         self.val = val_labels_df.merge(
             dcm_df,
             how='inner',
-            on=('PatientID', 'AccessionNumber'),
+            on=('PatientID', 'AccessionNumber', 'StudyInstanceUID'),
         )
         if self.val_kwargs["frontal_only"]:
             self.val = self.val[self.val.is_frontal].copy()
@@ -610,7 +610,7 @@ class MGBCXRDataModule(BaseDatamodule):
         self.test = labels_df.merge(
             dcm_df,
             how='inner',
-            on=('PatientID', 'AccessionNumber'),
+            on=('PatientID', 'AccessionNumber', 'StudyInstanceUID'),
         )
         self.test_dataset = self.__dataset_cls__(
             self.data_folder,

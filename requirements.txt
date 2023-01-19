@@ -92,7 +92,6 @@ matplotlib==3.2.1
 matplotlib-inline==0.1.6
 mistune==2.0.4
 mlflow==1.30.0
--e git+ssh://git@github.com/CPBridge/MedImaging-ModelDriftMonitoring.git@bfac38804f49c30852b83e250ee3c6145691a6c3#egg=model_drift
 msal==1.20.0
 msal-extensions==1.0.0
 msrest==0.7.1

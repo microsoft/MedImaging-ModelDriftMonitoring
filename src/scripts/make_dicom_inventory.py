@@ -19,6 +19,7 @@ kws = [
     "InstanceNumber",
     "SeriesNumber",
     "SeriesDescription",
+    "StudyDate",
     "PixelSpacing"
     "Manufacturer",
     "ManufacturerModelName",

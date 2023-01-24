@@ -12,6 +12,8 @@ if library_path not in PYPATH:
     os.environ["PYTHONPATH"] = ":".join(PYPATH)
 
 from model_drift.data.dataset import MGBCXRDataset
+from model_drift.data.utils import split_on_date
+from model_drift.data import mgb_data
 from model_drift.drift.metrics.sampler import Sampler
 from model_drift.drift.metrics.performance import ClassificationReportCalculator
 from model_drift.drift.metrics import ChiSqDriftCalculator
@@ -24,6 +26,13 @@ import pandas as pd
 import numpy as np
 
 import argparse
+
+DATASET_DIR = Path("/autofs/cluster/qtim/datasets/xray_drift")
+PROJECT_DIR = Path("/autofs/cluster/qtim/projects/xray_drift")
+
+
+def make_index(row: pd.Series):
+    return f"{row.PatientID}_{row.AccessionNumber}_{row.SOPInstanceUID}"
 
 
 @tracked(directory_parameter="output_dir")
@@ -53,11 +62,13 @@ def main(output_dir: Path, args: argparse.Namespace) -> None:
         ],
         axis=1
     )
-    print(scores_df)
 
     print("loading dicom metadata")
     meta_df = pd.read_csv(args.metadata_csv, index_col=0)
-    print(meta_df)
+    labels_df = pd.read_csv(DATASET_DIR / "csv" / "labels.csv", index_col=0)
+    meta_df = meta_df.merge(labels_df, how="left", on=("StudyInstanceUID", "PatientID", "AccessionNumber"))
+    meta_df["StudyDate"] = pd.to_datetime(meta_df["StudyDate"], format='%m/%d/%Y')
+    meta_df["index"] = meta_df.apply(make_index, axis=1)
 
     print("loading dataset vae results")
     vae_pred_file = args.vae_input_dir.joinpath('preds.jsonl')
@@ -69,6 +80,70 @@ def main(output_dir: Path, args: argparse.Namespace) -> None:
         ],
         axis=1
     )
+    vae_df.drop_duplicates(subset="index", inplace=True)
+
+    merged_df = scores_df.merge(vae_df, on="index", how="left")
+    merged_df = merged_df.merge(meta_df, on="index", how="left")
+    print(len(merged_df))
+    train_df, val_df, test_df = split_on_date(merged_df, [mgb_data.TRAIN_DATE_END, mgb_data.VAL_DATE_END])
+
+    calculators = {
+        "FLOAT": [KSDriftCalculator],
+        "CAT": [ChiSqDriftCalculator],
+        "DBG": [BasicDriftCalculator],
+    }
+
+    cols = {}
+    if args.include_metadata:
+        cols.update({
+            "ViewPosition": "CAT",
+            "Manufacturer": "CAT",
+            "PhotometricInterpretation": "CAT",
+            "BitsStored": "CAT",
+            "Rows": "FLOAT",
+            "Columns": "FLOAT",
+            "XRayTubeCurrent": "CAT",
+            "Exposure": "CAT",
+            "ExposureInuAs": "FLOAT",
+            "KVP": "FLOAT",
+        })
+
+    cols.update({c: "FLOAT" for c in list(merged_df) if c.startswith("mu.") and 'all' not in c})
+    cols.update({c: "FLOAT" for c in list(merged_df) if c.startswith("activation.") and 'all' not in c})
+
+    sampler = Sampler(args.sample_size, replacement=args.replacement)
+
+    ref_df = val_df.copy().assign(in_distro=True)
+    dwc = TabularDriftCalculator(ref_df)
+
+    for c, TYPE in cols.items():
+        for kls in calculators[TYPE]:
+            dwc.add_drift_stat(c, kls)
+
+    dwc.add_drift_stat(
+        'performance',
+        ClassificationReportCalculator,
+        col=("score", "label"),
+        target_names=tuple(MGBCXRDataset.LABEL_COLUMNS),
+        include_stat_name=False
+    )
+
+    dwc.prepare()
+
+    target_df = merged_df.set_index('StudyDate')
+
+    ref_df.to_csv(output_dir.joinpath('ref.csv'))
+    target_df.to_csv(output_dir.joinpath('target.csv'))
+
+    print("starting drift experiment!")
+    output = dwc.rolling_window_predict(
+        target_df,
+        sampler=sampler, n_samples=args.n_samples,
+        stride=args.stride, window=args.window, min_periods=args.min_periods,
+        n_jobs=args.num_workers, backend="threading",
+        refresh_rate=.01,
+    )
+    output.to_csv(fname)
 
 
 if __name__ == '__main__':
@@ -80,13 +155,14 @@ if __name__ == '__main__':
     parser.add_argument("--vae_input_dir", "-v", type=Path)
     parser.add_argument("--output_dir", "-o", type=Path)
     parser.add_argument("--metadata_csv", "-m", type=Path, default=Path("/autofs/cluster/qtim/datasets/xray_drift/csv/dicom_inventory.csv"))
+    parser.add_argument("--study_csv", "-s", type=Path, default=Path("/autofs/cluster/qtim/datasets/xray_drift/csv/dicom_inventory.csv"))
 
     parser.add_argument("--dataset", type=str, default='mgb')
     parser.add_argument("--vae_dataset", type=str, default='padchest-trained')
     parser.add_argument("--classifier_dataset", type=str, default='padchest-finetuned')
     parser.add_argument("--vae_filter", type=str, default='all-data')
     parser.add_argument("--classifier_filter", type=str, default='frontal_only')
-    parser.add_argument("--window", type=str)
+    parser.add_argument("--window", "-w", type=str, default="14D")
     parser.add_argument("--stride", type=str)
     parser.add_argument("--min_periods", type=int, default=150)
     parser.add_argument("--ref_frontal_only", type=int, default=1)

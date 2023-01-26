@@ -65,7 +65,8 @@ def main(output_dir: Path, args: argparse.Namespace) -> None:
 
     print("loading dicom metadata")
     meta_df = pd.read_csv(args.metadata_csv, index_col=0)
-    labels_df = pd.read_csv(DATASET_DIR / "csv" / "labels.csv", index_col=0)
+    meta_df.drop(columns=["StudyDate"], inplace=True)  # anonymized dates
+    labels_df = pd.read_csv(DATASET_DIR / "csv" / "labels.csv", index_col=0)  # need real dates from this file
     meta_df = meta_df.merge(labels_df, how="left", on=("StudyInstanceUID", "PatientID", "AccessionNumber"))
     meta_df["StudyDate"] = pd.to_datetime(meta_df["StudyDate"], format='%m/%d/%Y')
     meta_df["index"] = meta_df.apply(make_index, axis=1)
@@ -84,7 +85,6 @@ def main(output_dir: Path, args: argparse.Namespace) -> None:
 
     merged_df = scores_df.merge(vae_df, on="index", how="left")
     merged_df = merged_df.merge(meta_df, on="index", how="left")
-    print(len(merged_df))
     train_df, val_df, test_df = split_on_date(merged_df, [mgb_data.TRAIN_DATE_END, mgb_data.VAL_DATE_END])
 
     calculators = {
@@ -106,6 +106,13 @@ def main(output_dir: Path, args: argparse.Namespace) -> None:
             "Exposure": "CAT",
             "ExposureInuAs": "FLOAT",
             "KVP": "FLOAT",
+            "Modality": "CAT",
+            "PixelRepresentation": "CAT",
+            "PixelAspectRatio": "CAT",
+            "SpatialResolution": "CAT",
+            "WindowCenter": "FLOAT",
+            "WindowWidth": "FLOAT",
+            "RelativeXRayExposure": "FLOAT",
         })
 
     cols.update({c: "FLOAT" for c in list(merged_df) if c.startswith("mu.") and 'all' not in c})

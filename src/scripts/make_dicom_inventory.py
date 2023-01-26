@@ -20,7 +20,7 @@ kws = [
     "SeriesNumber",
     "SeriesDescription",
     "StudyDate",
-    "PixelSpacing"
+    "PixelSpacing",
     "Manufacturer",
     "ManufacturerModelName",
     "SoftwareVersions",
@@ -61,7 +61,7 @@ def process_file(p: Path):
 
 def make_dicom_inventory():
     for kw in kws:
-        assert tag_for_keyword(kw) is not None
+        assert tag_for_keyword(kw) is not None, f"{kw} is not a keyword"
 
     top_dir = Path("/autofs/cluster/qtim/datasets/xray_drift/dicom/studies/")
     files = list(top_dir.glob("**/series/**/instances/*"))

@@ -5,14 +5,22 @@
 import argparse
 import os
 
+import datetime
 import pandas as pd
+import pydicom
 import pytorch_lightning as pl
 import yaml
 from torch.utils.data import DataLoader
 
 from model_drift import settings
-from model_drift.data.dataset import ChestXrayDataset, PediatricChestXrayDataset, MIDRCDataset
+from model_drift.data.dataset import (
+    ChestXrayDataset,
+    PediatricChestXrayDataset,
+    MIDRCDataset,
+    MGBCXRDataset,
+)
 from model_drift.data.padchest import PadChest, LABEL_MAP, BAD_FILES
+from model_drift.data import mgb_data
 
 
 def _split_dates(s):
@@ -150,6 +158,9 @@ class BaseDatamodule(pl.LightningDataModule):
             num_workers=self.num_workers,
             pin_memory=True,
         )
+
+    def predict_dataloader(self):
+        return self.test_dataloader()
 
     @classmethod
     def add_argparse_args(cls, parser, **kwargs):
@@ -467,3 +478,154 @@ class MIDRCDataModule(BaseDatamodule):
             num_workers=self.num_workers,
             pin_memory=True,
         )
+
+
+class MGBCXRDataModule(BaseDatamodule):
+    __dataset_cls__ = MGBCXRDataset
+
+    ALLOWABLE_SOP_CLASSES = (
+        pydicom.uid.ComputedRadiographyImageStorage,
+        pydicom.uid.DigitalXRayImageStorageForPresentation,
+    )
+    ALLOWABLE_MODALITIES = ('CR', 'DX')
+    ALLOWABLE_BODY_PARTS = ('CHEST',)
+    ALLOWABLE_PIS = ('MONOCHROME1', 'MONOCHROME2')
+
+    def __init__(
+        self,
+        data_folder,
+        csv_folder,
+        transforms=None,
+
+        train_transforms=None,
+        val_transforms=None,
+        test_transforms=None,
+
+        batch_size=32,
+        num_workers=-1,
+        train_kwargs=None,
+        val_kwargs=None,
+        test_kwargs=None,
+
+        output_dir='./',
+
+        frontal_only=False,
+        train_frontal_only=None,
+        val_frontal_only=None,
+        test_frontal_only=None,
+    ):
+        super().__init__(
+            data_folder=data_folder,
+            transforms=transforms,
+            train_transforms=train_transforms,
+            val_transforms=val_transforms,
+            test_transforms=test_transforms,
+            batch_size=batch_size,
+            num_workers=num_workers,
+            train_kwargs=train_kwargs,
+            val_kwargs=val_kwargs,
+            test_kwargs=test_kwargs,
+            output_dir=output_dir,
+            frontal_only=frontal_only,
+            train_frontal_only=train_frontal_only,
+            val_frontal_only=val_frontal_only,
+            test_frontal_only=test_frontal_only,
+        )
+        self.csv_folder = csv_folder
+
+    @property
+    def labels(self):
+        return self.__dataset_cls__.LABEL_COLUMNS
+
+    def load_datasets(self, stage=None) -> None:
+        labels_df = pd.read_csv(
+            os.path.join(self.csv_folder, "labels.csv"),
+            dtype={
+                'AccessionNumber': str,
+                'PatientID': str,
+                'StudyInstanceUID': str,
+            },
+            index_col=0,
+        )
+        labels_df = labels_df[labels_df.StudyDate.notnull()].copy()
+        labels_df['StudyDate'] = labels_df.StudyDate.apply(
+            lambda x: datetime.datetime.strptime(x, '%m/%d/%Y')
+        )
+        train_labels_df = labels_df[
+            labels_df.StudyDate < mgb_data.TRAIN_DATE_END
+        ].copy()
+        val_labels_df = labels_df[
+            (labels_df.StudyDate > mgb_data.TRAIN_DATE_END) &
+            (labels_df.StudyDate < mgb_data.VAL_DATE_END)
+        ].copy()
+
+        dcm_df = pd.read_csv(
+            os.path.join(self.csv_folder, "dicom_inventory.csv"),
+            dtype=str,
+            index_col=0,
+        )
+
+        # Strip 0s from IDs so that they match between dataframes
+        dcm_df['PatientID'] = dcm_df.PatientID.str.lstrip('0')
+        dcm_df['AccessionNumber'] = dcm_df.AccessionNumber.str.lstrip('0')
+
+        # Apply basic inclusion/exclusion criteria
+        dcm_df["is_frontal"] = dcm_df.ViewPosition.isin(('AP', 'PA'))
+        dcm_df = dcm_df[
+            dcm_df.SOPClassUID.isin(self.ALLOWABLE_SOP_CLASSES) &
+            dcm_df.Modality.isin(self.ALLOWABLE_MODALITIES) &
+            dcm_df.BodyPartExamined.isin(self.ALLOWABLE_BODY_PARTS) &
+            dcm_df.PhotometricInterpretation.isin(self.ALLOWABLE_PIS)
+        ].copy()
+
+        self.train = train_labels_df.merge(
+            dcm_df,
+            how='inner',
+            on=('PatientID', 'AccessionNumber', 'StudyInstanceUID'),
+        )
+        if self.train_kwargs["frontal_only"]:
+            self.train = self.train[self.train.is_frontal].copy()
+        self.train_dataset = self.__dataset_cls__(
+            self.data_folder,
+            self.train,
+            transform=self.train_transforms,
+            **self.train_kwargs,
+        )
+
+        self.val = val_labels_df.merge(
+            dcm_df,
+            how='inner',
+            on=('PatientID', 'AccessionNumber', 'StudyInstanceUID'),
+        )
+        if self.val_kwargs["frontal_only"]:
+            self.val = self.val[self.val.is_frontal].copy()
+        self.val_dataset = self.__dataset_cls__(
+            self.data_folder,
+            self.val,
+            transform=self.val_transforms,
+            **self.val_kwargs,
+        )
+
+        # For now, test is simply the entire dataset
+        self.test = labels_df.merge(
+            dcm_df,
+            how='inner',
+            on=('PatientID', 'AccessionNumber', 'StudyInstanceUID'),
+        )
+        self.test_dataset = self.__dataset_cls__(
+            self.data_folder,
+            self.test,
+            transform=self.test_transforms,
+            **self.test_kwargs,
+        )
+
+    @classmethod
+    def add_argparse_args(cls, parser, **kwargs):
+        parser = super().add_argparse_args(parser, **kwargs)
+        group = parser.add_argument_group("mgb")
+
+        group.add_argument(
+            "--csv_folder", type=str, help="Path to the CSV directory",
+            default=None)
+
+        return parser

@@ -19,7 +19,12 @@ if library_path not in PYPATH:
 
 from model_drift import helpers
 from model_drift.models.vae import VAE
-from model_drift.data.datamodules import PadChestDataModule, PediatricCheXpertDataModule, MIDRCDataModule
+from model_drift.data.datamodules import (
+    PadChestDataModule,
+    PediatricCheXpertDataModule,
+    MIDRCDataModule,
+    MGBCXRDataModule,
+)
 from model_drift.callbacks import VAEPredictionWriter
 from model_drift.data.transform import VisionTransformer
 
@@ -28,6 +33,7 @@ data_modules = {
     "padchest": PadChestDataModule,
     "peds": PediatricCheXpertDataModule,
     "midrc": MIDRCDataModule,
+    "mgb": MGBCXRDataModule,
 }
 
 helpers.basic_logging()

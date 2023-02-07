@@ -3,6 +3,7 @@
 #  Licensed under the MIT License (MIT). See LICENSE in the repo root for license information.
 #  ------------------------------------------------------------------------------------------
 import os
+from pathlib import Path
 
 import numpy as np
 import pandas as pd
@@ -10,6 +11,7 @@ import six
 import torch
 from PIL import Image
 from PIL import ImageFile
+import pydicom
 from torch.utils.data import Dataset
 
 ImageFile.LOAD_TRUNCATED_IMAGES = True
@@ -247,3 +249,67 @@ class MIDRCDataset(BaseDataset):
             self.image_labels.append(labels)
             self.image_index.append(row['ImageId'][:-3] + 'png')
             self.recon_image_path.append(row['ImageId'][:-3] + 'png')
+
+
+class MGBCXRDataset(BaseDataset):
+    # TODO confirm labels
+    LABEL_COLUMNS = (
+        'Atelectasis',
+        'Cardiomegaly',
+        'Consolidation',
+        'Edema',
+        'Lung Lesion',
+        'No Finding',
+        'Lung Opacity',
+        'Pleural Other',  # merge ptx here?
+        'Pleural Effusion',
+        'Pneumonia',
+        # 'Pneumothorax',
+        # 'Support Devices',
+        # 'Enlarged Cardiomediastinum',
+        # 'Fracture',
+    )
+
+    def prepare_data(self):
+        if isinstance(self.dataframe_or_csv, pd.DataFrame):
+            df = self.dataframe_or_csv
+        else:
+            df = pd.read_csv(self.dataframe_or_csv, dtype=str, index_col=0)
+
+        self.folder_dir = Path(self.folder_dir)
+        for _, row in df.iterrows():
+            # Read in image from path
+            image_path = (
+                self.folder_dir /
+                Path(row.filepath)
+            )
+            self.image_paths.append(image_path)
+
+            labels = []
+            for c in self.LABEL_COLUMNS:
+                val = float(row[c])
+                if val == 1.0 or val == -1.0:
+                    # NB equivocal treated as positive
+                    labels.append(1)
+                else:
+                    # NB this means that "not mentioned" is treated as negative
+                    labels.append(0)
+            self.image_labels.append(labels)
+
+            self.frontal.append(float(row.is_frontal))
+            image_id = f"{row.PatientID}_{row.AccessionNumber}_{row.SOPInstanceUID}"
+            self.image_index.append(image_id)
+            self.recon_image_path.append(image_id + '.png')
+
+
+    def read_image(self, image_path):
+        dcm = pydicom.dcmread(image_path)
+        arr = dcm.pixel_array
+        max_val = 2 ** dcm.BitsStored - 1
+        if dcm.PhotometricInterpretation == "MONOCHROME1":
+            arr = max_val - arr
+        # arr = (arr / max_val) * 255
+        arr = ((arr - arr.min()) / (arr.max() - arr.min())) * 255
+        im = Image.fromarray(arr.astype(np.uint8))
+        im = im.convert("RGB")
+        return im

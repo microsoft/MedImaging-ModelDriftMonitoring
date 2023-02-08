@@ -59,7 +59,7 @@ def dicom_metadata_plots():
         "Modality": "CAT",
         "PixelRepresentation": "CAT",
         "PixelAspectRatio": "CAT",
-        # "SpatialResolution": "CAT",
+        # "SpatialResolution": "CAT",  # this is empty
         "WindowCenter": "FLOAT",
         "WindowWidth": "FLOAT",
         "RelativeXRayExposure": "FLOAT",
@@ -81,6 +81,11 @@ def dicom_metadata_plots():
     # Need to fix some columns that may contain lists
     df["WindowWidth"] = df.WindowWidth.apply(make_float)
     df["WindowCenter"] = df.WindowCenter.apply(make_float)
+
+    # For categorical variables stored as ints, convert to strings so that
+    # histogram will work correctly
+    df["BitsStored"] = df.BitsStored.astype(str)
+    df["PixelRepresentation"] = df.PixelRepresentation.astype(str)
 
     # Iterate over columns of interest
     for col, col_type in cols.items():

@@ -17,8 +17,12 @@ data_dir = mount_point / "qtim/datasets/private/xray_drift"
 csv_dir = data_dir / "csv"
 dicom_inventory_csv = csv_dir / "dicom_inventory.csv"
 labels_csv = csv_dir / "labels.csv"
+crosswalk_csv = csv_dir / "IRB2022P002646_Crosswalk.csv"
 dicom_dir = data_dir / "dicom"
 reports_dir = data_dir / "reports"
+reports_csv = reports_dir / "combined_reports.csv"
+impressions_csv = reports_dir / "impressions.csv"
+impressions_csv = reports_dir / "impressions.csv"
 
 # Directories containing project files
 project_dir = mount_point / "qtim/projects/xray_drift"

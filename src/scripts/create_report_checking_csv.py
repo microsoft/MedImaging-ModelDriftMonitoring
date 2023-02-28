@@ -8,7 +8,7 @@ from model_drift import mgb_locations
 
 @click.command()
 @click.argument("n", type=int)
-@tracked(literal_directory=mgb_locations.reports_dir)
+@tracked(literal_directory=mgb_locations.report_checking_dir)
 def create_report_checking_csv(n: int):
     """Create a CSV file of a random selection of reports to check.
 
@@ -56,7 +56,13 @@ def create_report_checking_csv(n: int):
 
     random_state = 12345
     sample = (
-        merged.groupby([merged.StudyDate.dt.year, merged.StudyDate.dt.month])
+        merged.groupby(
+            [
+                merged.StudyDate.dt.year,
+                merged.StudyDate.dt.month,
+                merged.StudyDate.dt.day,
+            ]
+        )
         .sample(n=n, random_state=random_state)  # Sample n per group
         .sample(frac=1, random_state=random_state)  # Shuffle full result
     )
@@ -86,7 +92,7 @@ def create_report_checking_csv(n: int):
     ].copy()
 
     sample.to_csv(
-        mgb_locations.reports_dir / "reports_to_check.csv",
+        mgb_locations.report_checking_dir / "reports_to_check.csv",
         index=False
     )
 

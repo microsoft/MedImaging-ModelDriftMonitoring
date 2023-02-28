@@ -15,6 +15,7 @@ else:
 # Directories containing data files
 data_dir = mount_point / "qtim/datasets/private/xray_drift"
 csv_dir = data_dir / "csv"
+study_list_csv = csv_dir / "study_list.csv"
 dicom_inventory_csv = csv_dir / "dicom_inventory.csv"
 labels_csv = csv_dir / "labels.csv"
 crosswalk_csv = csv_dir / "IRB2022P002646_Crosswalk.csv"

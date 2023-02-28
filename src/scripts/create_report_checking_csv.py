@@ -64,7 +64,6 @@ def create_report_checking_csv(n: int):
     sample = sample[
         [
             "Impression",
-            "ImpressionExtractionError",
             "No Finding",
             "Enlarged Cardiomediastinum",
             "Cardiomegaly",
@@ -82,6 +81,7 @@ def create_report_checking_csv(n: int):
             "ANON_MRN",
             "ANON_AccNumber",
             "Report Text",
+            "ImpressionExtractionError",
         ]
     ].copy()
 

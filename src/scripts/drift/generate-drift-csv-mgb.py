@@ -92,8 +92,6 @@ def main(output_dir: Path, args: argparse.Namespace) -> None:
     crosswalk = crosswalk[["ANON_AccNumber", "ORIG_AccNumber"]]
     # meta_df.assign(AccessionNumber=lambda x: x.AccessionNumber.str.lstrip("0"))
 
-    print(meta_df.AccessionNumber)
-    print(crosswalk.ANON_AccNumber)
     meta_df = meta_df.merge(
         crosswalk,
         how="left",
@@ -101,8 +99,6 @@ def main(output_dir: Path, args: argparse.Namespace) -> None:
         right_on="ANON_AccNumber",
         validate="many_to_one",
     )
-    print(meta_df.ORIG_AccNumber)
-    print(reports["Accession Number"])
     meta_df = meta_df.merge(
         reports,
         how="left",
@@ -110,8 +106,6 @@ def main(output_dir: Path, args: argparse.Namespace) -> None:
         right_on="Accession Number",
         validate="many_to_one",
     )
-    print(meta_df.columns)
-    print(meta_df)
 
     meta_df["StudyDate"] = pd.to_datetime(meta_df["StudyDate"], format='%m/%d/%Y')
     meta_df["index"] = meta_df.apply(make_index, axis=1)

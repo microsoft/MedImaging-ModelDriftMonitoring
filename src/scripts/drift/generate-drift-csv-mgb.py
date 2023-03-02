@@ -68,6 +68,39 @@ def main(output_dir: Path, args: argparse.Namespace) -> None:
     meta_df.drop(columns=["StudyDate"], inplace=True)  # anonymized dates
     labels_df = pd.read_csv(DATASET_DIR / "csv" / "labels.csv", index_col=0)  # need real dates from this file
     meta_df = meta_df.merge(labels_df, how="left", on=("StudyInstanceUID", "PatientID", "AccessionNumber"))
+
+    reports = pd.read_csv(mgb_locations.reports_csv, dtype=str)
+    reports = reports[
+        [
+            "Accession Number",
+            "Point of Care",
+            "Patient Sex",
+            "Patient Age",
+            "Is Stat",
+            "Exam Code",
+        ]
+    ].copy()
+    crosswalk = pd.read_csv(mgb_locations.crosswalk_csv, dtype=str)
+    crosswalk = crosswalk[["ANON_AccNumber", "ORIG_AccNumber"]]
+    crosswalk.assign("ANON_AccNumber", lambda x: x.ANON_AccNumber.zfill(10))
+
+    merged = (
+        meta_df.merge(
+            crosswalk,
+            how="left",
+            left_on="AccessionNumber",
+            right_on="ANON_AccNumber",
+            validate="many_to_one",
+        )
+        .merge(
+            reports,
+            how="left",
+            left_on="ORIG_AccNumber",
+            right_on="Accession Number",
+            validate="many_to_one",
+        )
+    )
+
     meta_df["StudyDate"] = pd.to_datetime(meta_df["StudyDate"], format='%m/%d/%Y')
     meta_df["index"] = meta_df.apply(make_index, axis=1)
 
@@ -113,6 +146,11 @@ def main(output_dir: Path, args: argparse.Namespace) -> None:
             "WindowCenter": "FLOAT",
             "WindowWidth": "FLOAT",
             "RelativeXRayExposure": "FLOAT",
+            "Point of Care": "CAT",
+            "Patient Sex": "CAT",
+            "Patient Age": "FLOAT",
+            "Is Stat": "CAT",
+            "Exam Code": "CAT",
         })
 
     cols.update({c: "FLOAT" for c in list(merged_df) if c.startswith("mu.") and 'all' not in c})

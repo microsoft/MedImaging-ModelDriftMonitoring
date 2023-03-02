@@ -118,6 +118,7 @@ def dicom_metadata_plots():
     # Need to fix some columns that may contain lists
     df["WindowWidth"] = df.WindowWidth.apply(make_float)
     df["WindowCenter"] = df.WindowCenter.apply(make_float)
+    df["Patient Age"] = df["Patient Age"].apply(make_float)
 
     # For categorical variables stored as ints, convert to strings so that
     # histogram will work correctly
@@ -126,8 +127,9 @@ def dicom_metadata_plots():
 
     # Iterate over columns of interest
     for col, col_type in cols.items():
+        print(col)
+        col_fname = col.replace(" ", "_")
         if col_type == "CAT":
-            col_fname = col.replace(" ", "_")
             # Single plot
             p = (
                 ggplot(df, aes(x="StudyDate", fill=col)) +

@@ -19,16 +19,13 @@ from model_drift.drift.metrics.performance import ClassificationReportCalculator
 from model_drift.drift.metrics import ChiSqDriftCalculator
 from model_drift.drift.metrics.numeric import KSDriftCalculator, BasicDriftCalculator
 from model_drift.drift.metrics import TabularDriftCalculator
-from model_drift import settings, helpers
+from model_drift import settings, helpers, mgb_locations
 from pycrumbs import tracked
 import warnings
 import pandas as pd
 import numpy as np
 
 import argparse
-
-DATASET_DIR = Path("/autofs/cluster/qtim/datasets/xray_drift")
-PROJECT_DIR = Path("/autofs/cluster/qtim/projects/xray_drift")
 
 
 def make_index(row: pd.Series):
@@ -64,11 +61,22 @@ def main(output_dir: Path, args: argparse.Namespace) -> None:
     )
 
     print("loading dicom metadata")
-    meta_df = pd.read_csv(args.metadata_csv, index_col=0)
+    meta_df = pd.read_csv(
+        args.metadata_csv,
+        index_col=0,
+    )
     meta_df.drop(columns=["StudyDate"], inplace=True)  # anonymized dates
-    labels_df = pd.read_csv(DATASET_DIR / "csv" / "labels.csv", index_col=0)  # need real dates from this file
-    meta_df = meta_df.merge(labels_df, how="left", on=("StudyInstanceUID", "PatientID", "AccessionNumber"))
+    labels_df = pd.read_csv(
+        mgb_locations.labels_csv,
+        index_col=0,
+    )  # need real dates from this file
+    meta_df = meta_df.merge(
+        labels_df,
+        how="left",
+        on=("StudyInstanceUID", "PatientID", "AccessionNumber"),
+    )
 
+    # Some metadata is from the RIS and is in the reports CSV
     reports = pd.read_csv(mgb_locations.reports_csv, dtype=str)
     reports = reports[
         [
@@ -80,26 +88,30 @@ def main(output_dir: Path, args: argparse.Namespace) -> None:
             "Exam Code",
         ]
     ].copy()
-    crosswalk = pd.read_csv(mgb_locations.crosswalk_csv, dtype=str)
+    crosswalk = pd.read_csv(mgb_locations.crosswalk_csv, dtype={"ANON_AccNumber": int})
     crosswalk = crosswalk[["ANON_AccNumber", "ORIG_AccNumber"]]
-    crosswalk.assign("ANON_AccNumber", lambda x: x.ANON_AccNumber.zfill(10))
+    # meta_df.assign(AccessionNumber=lambda x: x.AccessionNumber.str.lstrip("0"))
 
-    merged = (
-        meta_df.merge(
-            crosswalk,
-            how="left",
-            left_on="AccessionNumber",
-            right_on="ANON_AccNumber",
-            validate="many_to_one",
-        )
-        .merge(
-            reports,
-            how="left",
-            left_on="ORIG_AccNumber",
-            right_on="Accession Number",
-            validate="many_to_one",
-        )
+    print(meta_df.AccessionNumber)
+    print(crosswalk.ANON_AccNumber)
+    meta_df = meta_df.merge(
+        crosswalk,
+        how="left",
+        left_on="AccessionNumber",
+        right_on="ANON_AccNumber",
+        validate="many_to_one",
     )
+    print(meta_df.ORIG_AccNumber)
+    print(reports["Accession Number"])
+    meta_df = meta_df.merge(
+        reports,
+        how="left",
+        left_on="ORIG_AccNumber",
+        right_on="Accession Number",
+        validate="many_to_one",
+    )
+    print(meta_df.columns)
+    print(meta_df)
 
     meta_df["StudyDate"] = pd.to_datetime(meta_df["StudyDate"], format='%m/%d/%Y')
     meta_df["index"] = meta_df.apply(make_index, axis=1)
@@ -199,8 +211,7 @@ if __name__ == '__main__':
     parser.add_argument("--input_dir", "-i", type=Path)
     parser.add_argument("--vae_input_dir", "-v", type=Path)
     parser.add_argument("--output_dir", "-o", type=Path)
-    parser.add_argument("--metadata_csv", "-m", type=Path, default=Path("/autofs/cluster/qtim/datasets/xray_drift/csv/dicom_inventory.csv"))
-    parser.add_argument("--study_csv", "-s", type=Path, default=Path("/autofs/cluster/qtim/datasets/xray_drift/csv/dicom_inventory.csv"))
+    parser.add_argument("--metadata_csv", "-m", type=Path, default=mgb_locations.dicom_inventory_csv)
 
     parser.add_argument("--dataset", type=str, default='mgb')
     parser.add_argument("--vae_dataset", type=str, default='padchest-trained')

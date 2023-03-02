@@ -14,17 +14,42 @@ from model_drift import mgb_locations
 from pycrumbs import tracked
 
 
-OUTPUT_DIRECTORY = mgb_locations.analysis_dir / "dicom_metadata"
+from pathlib import Path
+OUTPUT_DIRECTORY = Path("tmp")
+# OUTPUT_DIRECTORY = mgb_locations.analysis_dir / "dicom_metadata"
 
 
 @tracked(literal_directory=OUTPUT_DIRECTORY)
 def dicom_metadata_plots():
 
     # Read in DICOM inventory
-    df = pd.read_csv(mgb_locations.dicom_inventory_csv)
+    df = pd.read_csv(
+        mgb_locations.dicom_inventory_csv,
+        dtype={"AccessionNumber": str, "PatientID": str},
+    )
 
     # Drop incorrect date column
     df.drop(columns="StudyDate", inplace=True)
+
+    # Reports
+    reports_df = pd.read_csv(mgb_locations.reports_csv, dtype=str)
+    reports_df = reports_df[
+        [
+            "Accession Number",
+            "Point of Care",
+            "Patient Sex",
+            "Patient Age",
+            "Is Stat",
+            "Exam Code",
+        ]
+    ].copy()
+    crosswalk_df = pd.read_csv(mgb_locations.crosswalk_csv, dtype=str)
+    reports_df = reports_df.merge(
+        crosswalk_df,
+        left_on="Accession Number",
+        right_on="ORIG_AccNumber",
+        validate="one_to_one",
+    )
 
     # Read in labels file for the correct date, drop other columns
     labels_df = pd.read_csv(
@@ -40,6 +65,15 @@ def dicom_metadata_plots():
         labels_df,
         on="StudyInstanceUID",
         how="inner",
+        validate="many_to_one",
+    )
+
+    df["AccessionNumber"] = df.AccessionNumber.apply(lambda x: x.lstrip("0"))
+
+    df = df.merge(
+        reports_df,
+        left_on="AccessionNumber",
+        right_on="ANON_AccNumber",
         validate="many_to_one",
     )
 
@@ -63,6 +97,11 @@ def dicom_metadata_plots():
         "WindowCenter": "FLOAT",
         "WindowWidth": "FLOAT",
         "RelativeXRayExposure": "FLOAT",
+        "Point of Care": "CAT",
+        "Exam Code": "CAT",
+        "Is Stat": "CAT",
+        "Patient Sex": "CAT",
+        "Patient Age": "FLOAT",
     }
 
     def make_float(x):
@@ -90,6 +129,7 @@ def dicom_metadata_plots():
     # Iterate over columns of interest
     for col, col_type in cols.items():
         if col_type == "CAT":
+            col_fname = col.replace(" ", "_")
             # Single plot
             p = (
                 ggplot(df, aes(x="StudyDate", fill=col)) +
@@ -97,7 +137,7 @@ def dicom_metadata_plots():
                 ggtitle(col) +
                 theme(figure_size=(10, 6))
             )
-            p.save(OUTPUT_DIRECTORY / f"{col}_histogram.png")
+            p.save(OUTPUT_DIRECTORY / f"{col_fname}_histogram.png")
 
             # Per scanner model
             if col not in ("Manufacturer", "ManufacturerModelName"):
@@ -108,7 +148,7 @@ def dicom_metadata_plots():
                     theme(figure_size=(10, 25)) +
                     facet_grid("ManufacturerModelName ~ .")
                 )
-                p.save(OUTPUT_DIRECTORY / f"{col}_histogram_by_model.png")
+                p.save(OUTPUT_DIRECTORY / f"{col_fname}_histogram_by_model.png")
 
         if col_type == "FLOAT":
             p = (
@@ -121,7 +161,7 @@ def dicom_metadata_plots():
                 theme(figure_size=(10, 6))
                 # facet_grid('ManufacturerModelName ~ .')
             )
-            p.save(OUTPUT_DIRECTORY / f"{col}_smooth.png")
+            p.save(OUTPUT_DIRECTORY / f"{col_fname}_smooth.png")
 
             # Per scanner model
             try:
@@ -134,7 +174,7 @@ def dicom_metadata_plots():
                     ggtitle(col) +
                     theme(figure_size=(10, 6))
                 )
-                p.save(OUTPUT_DIRECTORY / f"{col}_smooth_by_model.png")
+                p.save(OUTPUT_DIRECTORY / f"{col_fname}_smooth_by_model.png")
             except Exception:
                 print("Error in", col)
                 pass

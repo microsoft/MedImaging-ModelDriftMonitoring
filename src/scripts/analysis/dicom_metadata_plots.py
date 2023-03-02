@@ -14,9 +14,7 @@ from model_drift import mgb_locations
 from pycrumbs import tracked
 
 
-from pathlib import Path
-OUTPUT_DIRECTORY = Path("tmp")
-# OUTPUT_DIRECTORY = mgb_locations.analysis_dir / "dicom_metadata"
+OUTPUT_DIRECTORY = mgb_locations.analysis_dir / "dicom_metadata"
 
 
 @tracked(literal_directory=OUTPUT_DIRECTORY)

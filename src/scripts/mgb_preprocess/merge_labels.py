@@ -1,20 +1,20 @@
 import click
 import pandas as pd
 
-from cxr_drift import locations
+from model_drift import mgb_locations
 
 
 @click.command()
 def merge_labels() -> None:
     """Merge labels to create an anonymized set."""
-    labels_df = pd.read_csv(locations.raw_labels_csv)
+    labels_df = pd.read_csv(mgb_locations.raw_labels_csv)
     study_df = pd.read_csv(
-        locations.study_list_csv,
+        mgb_locations.study_list_csv,
         index_col=0,
     )
     master_df = pd.concat([study_df, labels_df], axis=1)
 
-    id_map_df = pd.read_csv(locations.id_map_csv, index_col=0)
+    id_map_df = pd.read_csv(mgb_locations.crosswalk_csv, index_col=0)
     joined_df = master_df.merge(
         id_map_df,
         how="left",
@@ -37,4 +37,8 @@ def merge_labels() -> None:
             }
         )
     )
-    out_df.to_csv(locations.labels_csv)
+    out_df.to_csv(mgb_locations.labels_csv)
+
+
+if __name__ == "__main__":
+    merge_labels()

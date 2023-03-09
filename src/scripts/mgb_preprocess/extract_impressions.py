@@ -1,10 +1,11 @@
 from os import linesep
+from pathlib import Path
 
 import click
 import pandas as pd
-from ml_proj_tools.records import auto_record
+from pycrumbs import tracked
 
-from cxr_drift import locations
+from model_drift import mgb_locations
 
 
 def get_impression(report: str) -> str:
@@ -55,10 +56,15 @@ def get_impression(report: str) -> str:
 
 
 @click.command()
-@auto_record(output_dir=locations.reports_dir)
-def extract_impressions() -> None:
+@click.argument(
+    "output-dir",
+    type=click.Path(file_okay=False, writable=True, path_type=Path),
+    default=mgb_locations.reports_dir,
+)
+@tracked(directory_parameter="output_dir")
+def extract_impressions(output_dir: Path) -> None:
     """Extract impressions from the reports CSV and stored in impressions.csv."""
-    reports_df = pd.read_csv(locations.master_reports_csv, dtype=str)
+    reports_df = pd.read_csv(mgb_locations.reports_csv, dtype=str)
     impressions = reports_df["Report Text"].apply(get_impression)
     impressions_df = pd.DataFrame(
         {
@@ -66,7 +72,11 @@ def extract_impressions() -> None:
         }
     )
     impressions_df.to_csv(
-        locations.impressions_csv,
+        output_dir / "impressions.csv",
         header=False,
         index=False,
     )
+
+
+if __name__ == "__main__":
+    extract_impressions()

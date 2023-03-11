@@ -281,7 +281,10 @@ class MGBCXRDataset(BaseDataset):
             # Read in image from path
             image_path = (
                 self.folder_dir /
-                Path(row.filepath)
+                (
+                    f"studies/{row.StudyInstanceUID}/series/"
+                    f"{row.SeriesInstanceUID}/instances/{row.SOPInstanceUID}"
+                )
             )
             self.image_paths.append(image_path)
 

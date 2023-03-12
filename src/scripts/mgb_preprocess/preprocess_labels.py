@@ -25,7 +25,16 @@ from model_drift.data import mgb_data
 @tracked(directory_parameter="output_dir")
 def preprocess_labels(labels_csv: Path, output_dir: Path) -> None:
     """Preprocess labels for this project."""
-    labels_df = pd.read_csv(labels_csv, index_col=0)
+    labels_df = pd.read_csv(
+        labels_csv,
+        index_col=0,
+        dtype={
+            'PatientID': str,
+            'AccessionNumber': str,
+            'StudyDate': str,
+            'StudyInstanceUID': str
+        }
+    )
 
     non_label_cols = [
         c for c in labels_df.columns if c not in mgb_data.RAW_LABELS

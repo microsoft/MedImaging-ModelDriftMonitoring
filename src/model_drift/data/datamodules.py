@@ -4,6 +4,7 @@
 #  ------------------------------------------------------------------------------------------
 import argparse
 import os
+from pathlib import Path
 
 import datetime
 import pandas as pd
@@ -21,6 +22,7 @@ from model_drift.data.dataset import (
 )
 from model_drift.data.padchest import PadChest, LABEL_MAP, BAD_FILES
 from model_drift.data import mgb_data
+from model_drift import mgb_locations
 
 
 def _split_dates(s):
@@ -494,7 +496,8 @@ class MGBCXRDataModule(BaseDatamodule):
     def __init__(
         self,
         data_folder,
-        csv_folder,
+        csv_folder=mgb_locations.csv_dir,
+        labels_csv=mgb_locations.preprocessed_labels_csv,
         transforms=None,
 
         train_transforms=None,
@@ -531,7 +534,8 @@ class MGBCXRDataModule(BaseDatamodule):
             val_frontal_only=val_frontal_only,
             test_frontal_only=test_frontal_only,
         )
-        self.csv_folder = csv_folder
+        self.csv_folder = Path(csv_folder)
+        self.labels_csv = Path(labels_csv)
 
     @property
     def labels(self):
@@ -539,7 +543,7 @@ class MGBCXRDataModule(BaseDatamodule):
 
     def load_datasets(self, stage=None) -> None:
         labels_df = pd.read_csv(
-            os.path.join(self.csv_folder, "labels.csv"),
+            self.labels_csv,
             dtype={
                 'AccessionNumber': str,
                 'PatientID': str,
@@ -560,7 +564,7 @@ class MGBCXRDataModule(BaseDatamodule):
         ].copy()
 
         dcm_df = pd.read_csv(
-            os.path.join(self.csv_folder, "dicom_inventory.csv"),
+            self.csv_folder / "dicom_inventory.csv",
             dtype=str,
             index_col=0,
         )
@@ -625,7 +629,16 @@ class MGBCXRDataModule(BaseDatamodule):
         group = parser.add_argument_group("mgb")
 
         group.add_argument(
-            "--csv_folder", type=str, help="Path to the CSV directory",
-            default=None)
+            "--csv_folder",
+            type=Path,
+            help="Path to the CSV directory",
+            default=mgb_locations.csv_dir,
+        )
+        group.add_argument(
+            "--labels_csv",
+            type=Path,
+            help="Path to the CSV file containing labels",
+            default=mgb_locations.preprocessed_labels_csv,
+        )
 
         return parser

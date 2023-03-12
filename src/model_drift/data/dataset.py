@@ -14,6 +14,9 @@ from PIL import ImageFile
 import pydicom
 from torch.utils.data import Dataset
 
+from model_drift.data import mgb_data
+
+
 ImageFile.LOAD_TRUNCATED_IMAGES = True
 
 
@@ -252,23 +255,7 @@ class MIDRCDataset(BaseDataset):
 
 
 class MGBCXRDataset(BaseDataset):
-    # TODO confirm labels
-    LABEL_COLUMNS = (
-        'Atelectasis',
-        'Cardiomegaly',
-        'Consolidation',
-        'Edema',
-        'Lung Lesion',
-        'No Finding',
-        'Lung Opacity',
-        'Pleural Other',  # merge ptx here?
-        'Pleural Effusion',
-        'Pneumonia',
-        # 'Pneumothorax',
-        # 'Support Devices',
-        # 'Enlarged Cardiomediastinum',
-        # 'Fracture',
-    )
+    LABEL_COLUMNS = list(mgb_data.LABEL_GROUPINGS.keys())
 
     def prepare_data(self):
         if isinstance(self.dataframe_or_csv, pd.DataFrame):

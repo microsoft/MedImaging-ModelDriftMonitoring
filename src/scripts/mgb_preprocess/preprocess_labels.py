@@ -20,7 +20,7 @@ from model_drift.data import mgb_data
     "--output-dir",
     "-o",
     type=click.Path(file_okay=False, path_type=Path),
-    default=mgb_locations.labels_dir,
+    default=mgb_locations.preprocessed_labels_dir,
 )
 @tracked(directory_parameter="output_dir")
 def preprocess_labels(labels_csv: Path, output_dir: Path) -> None:

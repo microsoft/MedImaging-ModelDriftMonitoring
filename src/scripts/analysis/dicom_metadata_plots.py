@@ -39,6 +39,7 @@ def dicom_metadata_plots():
             "Patient Age",
             "Is Stat",
             "Exam Code",
+            "Patient Status",
         ]
     ].copy()
     crosswalk_df = pd.read_csv(mgb_locations.crosswalk_csv, dtype=str)
@@ -100,6 +101,7 @@ def dicom_metadata_plots():
         "Is Stat": "CAT",
         "Patient Sex": "CAT",
         "Patient Age": "FLOAT",
+        "Patient Status": "CAT",
     }
 
     def make_float(x):

@@ -9,7 +9,7 @@ import torch
 from argparse import Namespace
 from pathlib import Path
 
-import model_drift.azure_utils
+
 
 library_path = str(Path(__file__).parent.parent.parent)
 PYPATH = os.environ.get("PYTHONPATH", "").split(":")
@@ -17,6 +17,7 @@ if library_path not in PYPATH:
     PYPATH.append(library_path)
     os.environ["PYTHONPATH"] = ":".join(PYPATH)
 
+import model_drift.azure_utils
 from model_drift import helpers
 from model_drift.models.finetune import CheXFinetune
 from model_drift.data.datamodules import PadChestDataModule, PediatricCheXpertDataModule, MIDRCDataModule

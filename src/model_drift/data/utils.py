@@ -4,6 +4,7 @@
 #  ------------------------------------------------------------------------------------------
 import ast
 import itertools
+import json
 
 import pandas as pd
 import tqdm
@@ -11,6 +12,8 @@ from joblib import delayed
 from sklearn.preprocessing import MultiLabelBinarizer
 
 from model_drift.helpers import ProgressParallel as Parallel
+from model_drift.io.serialize import ModelDriftEncoder
+
 
 
 def fix_strlst(series, clean=True):
@@ -90,11 +93,16 @@ def remap_labels(labels, label_map=None, verbose=False):
     return mapped
 
 
-def split_on_date(df, splits, col="StudyDate"):
+def split_on_date(df, splits, col=None):
     splits = pd.to_datetime(splits).sort_values()
+    
     rem = df
+    
     for split in splits:
-        curr, rem = rem[rem[col] < split], rem[rem[col] >= split]
+        if col is None:
+            curr, rem = rem[rem.index < split], rem[rem.index >= split]
+        else:
+            curr, rem = rem[rem[col] < split], rem[rem[col] >= split]
         yield curr
     yield rem
 
@@ -149,8 +157,37 @@ def nested2tuplekeys(out):
     return out2
 
 
-def rolling_window_dt_apply(dataframe, func, window='30D', stride='D', min_periods=1, include_count=True, n_jobs=1,
-                            verbose=0, backend='loky', refresh_rate=None, **kwargs):
+def tuplekeys2nested(d: dict) -> dict:
+    result = {}
+    for key, value in d.items():
+        target = result
+        trim_key = [k for k in key if len(str(k))]
+        for k in trim_key[:-1]:
+            # traverse all keys but the last
+            target = target.setdefault(k, {})
+        target[trim_key[-1]] = value
+    return result
+
+
+def merge_nested(d1, d2, suffices=("left", "right")):
+    for k, left in d1.items():
+        if k in d2:
+            right = d2[k]
+            if isinstance(left, dict) and isinstance(right, dict):
+                d1[k] = merge_nested(right, left, suffices=suffices)
+            else:
+                d1[k] = {suffices[0]: left, suffices[1]: right}
+        else:
+            d1[k] = left
+
+    for k, right in d2.items():
+        if k in d1: continue
+        d1[k] = right
+
+    return d1
+
+def rolling_window_dt_apply(dataframe, func, drilldown_func=None, window='30D', stride='D', min_periods=1, n_jobs=1,
+                            verbose=0, backend='loky', refresh_rate=None, output_dir="./history/", **kwargs):
     if not isinstance(dataframe.index, pd.DatetimeIndex):
         raise ValueError()
 
@@ -163,12 +200,21 @@ def rolling_window_dt_apply(dataframe, func, window='30D', stride='D', min_perio
     bdelta = delta - fdelta
 
     def _apply(i):
-        x = dataframe.loc[str(i - bdelta):str(i + fdelta)]
-        if len(x) < min_periods:
+        wstart, wend = str(i - bdelta), str(i + fdelta)
+        det_window = dataframe.loc[wstart:wend]
+        if len(det_window) < min_periods:
             return None
-        preds = func(x)
-        if include_count:
-            preds["window_count"] = len(x)
+
+        preds = func(det_window)
+        data = {
+            "info": {"date_range": [str(wstart), str(wend)], "date": str(i), "nsamples": len(det_window)},
+            "metrics": tuplekeys2nested(preds),
+        }
+        if drilldown_func is not None:
+            drilldowns = drilldown_func(det_window)
+            data["drilldowns"] = drilldowns
+        with open(f"{output_dir}/{i.date()}.json", "w") as f:
+            print(json.dumps(data, indent=1, cls=ModelDriftEncoder), file=f)
         return nested2series(preds)
 
     kwargs['desc'] = f"{tmp_index.min().date()} - {tmp_index.max().date()} window: {window}, stride: {stride}"

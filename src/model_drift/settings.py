@@ -48,3 +48,5 @@ env.str(
 )
 
 PADCHEST_SPLIT_DATES_STR = ','.join(PADCHEST_SPLIT_DATES)
+
+DEFAULT_DRIFT_CONFIG = env.path("DEFAULT_DRIFT_CONFIG", default=str(TOP_DIR.joinpath("src", "model_drift", "drift", "config", "padchest.default.yml" )))

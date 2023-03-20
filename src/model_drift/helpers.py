@@ -11,6 +11,7 @@ import sys
 from collections.abc import Iterator
 from distutils import dir_util
 from functools import reduce
+import numpy as np
 
 import pandas as pd
 import six
@@ -189,6 +190,87 @@ class ProgressParallel(Parallel):
             self._pbar.refresh()
 
 
+def load_vae_preds(vae_pred_file, vae_col='mu'):
+    print("loading dataset vae results")
+    vae_df = jsonl_files2dataframe(vae_pred_file, desc="reading VAE results", refresh_rate=.1)
+    vae_df = pd.concat(
+        [
+            vae_df,
+            pd.DataFrame(vae_df[vae_col].values.tolist(), columns=[f"{vae_col}.{c:0>3}" for c in range(128)])
+        ],
+        axis=1
+    )
+
+    return vae_df
+
+
+def load_score_preds(label_cols, scores_pred_file, score_col="activation"):
+    print("loading dataset predicted probabilities")
+    scores_df = jsonl_files2dataframe(scores_pred_file, desc="reading classifier results", refresh_rate=.1)
+    scores_df = pd.concat(
+        [
+            scores_df,
+            pd.DataFrame(scores_df[score_col].values.tolist(), columns=[f"{score_col}.{c}" for c in label_cols])
+        ],
+        axis=1)
+
+    return scores_df
+
+def create_ood_dataframe(outside_data, pct, counts, start_date=None, end_date=None, shuffle=False):
+    # print(counts.index.min(), counts.index.max())
+    if start_date is None:
+        start_date = counts.index.min()
+
+    if end_date is None:
+        end_date = counts.index.max()
+
+    inject_index = pd.date_range(start_date, end_date, freq='D')
+    cl = CycleList(outside_data.index, shuffle=shuffle)
+    new_df = {}
+    counts = (counts * pct).apply(np.round).reindex(inject_index).fillna(0).astype(int)
+    for new_ix, count in counts.items():
+        ixes = cl.take(int(count))
+        new_df[new_ix] = outside_data.loc[ixes]
+    return pd.concat(new_df, axis=0).reset_index(level=1).rename_axis('StudyDate')
+
+
+def filter_label_by_score(df, q, label_cols, sample_start_date=None, sample_end_date=None, bad=True):
+    # print("Input Len", len(df))
+    stuff = df.loc[sample_start_date:sample_end_date].reset_index()
+    # print("Sample Len", len(stuff))
+    index = set()
+    for label_col in label_cols:
+        if bad:
+            # top of negatives, bottom of positives
+            top_df, bottom_df = stuff[stuff[label_col] == 0], stuff[stuff[label_col] != 0]
+        else:
+            # bottom of negatives, top of positives
+            bottom_df, top_df = stuff[stuff[label_col] == 0], stuff[stuff[label_col] != 0]
+
+        lv = bottom_df[f"activation.{label_col}"].quantile(q=q)
+        hv = top_df[f"activation.{label_col}"].quantile(q=1 - q)
+        bottoms = bottom_df[bottom_df[f"activation.{label_col}"] < lv].index
+        tops = top_df[top_df[f"activation.{label_col}"] > hv].index
+        index = index.union(bottoms).union(tops)
+    return stuff.loc[index]
+
+
+def filter_midrc(df, midrc_include=None, midrc_exclude=None):
+    if midrc_include:
+        filti = pd.Series([False] * len(df), index=df.index)
+        for col in midrc_include.split(','):
+            filti = df[col] | filti
+    else:
+        filti = pd.Series([True] * len(df), index=df.index)
+
+    filte = pd.Series([True] * len(df), index=df.index)
+    if midrc_exclude:
+        for col in midrc_exclude.split(','):
+            filte = filte & ~df[col]
+
+    return df[filte & filti]
+
+
 class CycleList(Iterator):
     def __init__(self, lst, shuffle=False):
         self.lst = lst
@@ -217,3 +299,31 @@ class CycleList(Iterator):
 
     def take(self, n):
         return [next(self) for i in range(n)]
+
+
+
+def create_score_based_ood_frame(dataframe, label_cols, counts=None, q=0.25, bottom=True, ood_end_date=None, ood_start_date=None,
+                                 sample_end_date=None, sample_start_date=None):
+
+
+    if counts is None:
+        counts = dataframe.groupby(dataframe.index.dt.date()).count().iloc[:, 0]
+
+    if ood_start_date is None:
+        ood_start_date = dataframe.index.min()
+
+    if ood_end_date is None:
+        ood_end_date = dataframe.index.max()
+
+    if sample_start_date is None:
+        sample_start_date = dataframe.index.min()
+
+    if sample_end_date is None:
+        sample_end_date = dataframe.index.max()
+
+    bad_sample_data = filter_label_by_score(dataframe, q, label_cols=label_cols, sample_start_date=sample_start_date,
+                                            sample_end_date=sample_end_date, bad=bottom)
+    print("len bad_sample_data", len(bad_sample_data))
+    bad_sample_data = create_ood_dataframe(bad_sample_data, 1.0, counts, start_date=ood_start_date,
+                                           end_date=ood_end_date, shuffle=True)
+    return bad_sample_data

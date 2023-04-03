@@ -111,7 +111,7 @@ class KdeHistPlotCalculator(BaseDriftCalculator):
     def _get_widths_and_centers(edges):
         widths = np.diff(edges)
         return widths, edges[:-1] + widths / 2
-    
+
     def get_x(self, sample):
         if self.use_ref_kde_bounds:
             if self._ref_kde_x is None:
@@ -124,7 +124,7 @@ class KdeHistPlotCalculator(BaseDriftCalculator):
         sample = sample.dropna()
         try:
             sample_kde = gaussian_kde(sample, bw_method=self.bw_method)
-        except:
+        except:  # noqa
             return {}
 
         x = self.get_x(sample)

@@ -28,7 +28,9 @@ class SerializableMeta(ABCMeta):
 def get_dumper():
     safe_dumper = yaml.SafeDumper
     for cls in SerializableMeta.get_registry().values():
-        representer = lambda dumper, instance: dumper.represent_mapping(instance.yaml_tag, instance.serialize())
+        def representer(dumper, instance):
+            return dumper.represent_mapping(instance.yaml_tag, instance.serialize())
+
         safe_dumper.add_representer(cls, representer)
     return safe_dumper
 
@@ -37,7 +39,9 @@ def get_loader():
     loader = yaml.SafeLoader
 
     for cls in SerializableMeta.get_registry().values():
-        constructor = lambda loader, node: cls.deserialize(loader.construct_mapping(node))
+        def constructor(loader, node):
+            return cls.deserialize(loader.construct_mapping(node))
+
         loader.add_constructor(cls.yaml_tag, constructor)
     return loader
 

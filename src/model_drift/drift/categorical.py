@@ -21,14 +21,15 @@ def merge_freqs(ref_counts, sample):
 class ChiSqDriftCalculator(BaseDriftCalculator):
     name = "chi2"
 
-    def __init__(self, q_val=0.1, correction=True, lambda_=None, use_freq=False, include_critical_values=False, **kwargs):
+    def __init__(self, q_val=0.1, correction=True, lambda_=None, use_freq=False, include_critical_values=False,
+                 **kwargs):
         super().__init__(**kwargs)
         self.q_val = q_val
         self.correction = correction
         self.lambda_ = lambda_
         self.use_freq = use_freq
         self.include_critical_values = include_critical_values
-        
+
     def convert(self, arg):
         return arg.apply(str)
 
@@ -52,5 +53,3 @@ class ChiSqDriftCalculator(BaseDriftCalculator):
             out['critical_diff'] = out['distance'] - out['critical_value']
 
         return out
-
-

@@ -11,7 +11,7 @@ from pathlib import Path
 import pandas as pd
 
 try:
-    import model_drift
+    import model_drift # noqa
 except ImportError:
     library_path = str(Path(__file__).parent.parent.parent)
     PYPATH = os.environ.get("PYTHONPATH", "").split(":")

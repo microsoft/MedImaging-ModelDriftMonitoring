@@ -398,13 +398,16 @@ def create_score_based_ood_frame(dataframe, label_cols, counts=None, q=0.25, bot
     Args:
         dataframe (pandas.DataFrame): The input DataFrame containing score predictions.
         label_cols (list): A list of label columns to include in the output DataFrame.
-        counts (pandas.Series, optional): A pandas Series object representing the counts of the input DataFrame. Default is None.
+        counts (pandas.Series, optional): A pandas Series object representing the counts of the input DataFrame.
+            Default is None.
         q (float, optional): The quantile threshold to use for filtering bad samples. Default is 0.25.
         bottom (bool, optional): Whether to consider the bottom or top quantile as bad. Default is True.
         ood_end_date (str, optional): An end date for the OOD DataFrame. Default is None.
         ood_start_date (str, optional): A start date for the OOD DataFrame. Default is None.
-        sample_end_date (str, optional): An end date for the sample DataFrame used for filtering bad samples. Default is None.
-        sample_start_date (str, optional): A start date for the sample DataFrame used for filtering bad samples. Default is None.
+        sample_end_date (str, optional): An end date for the sample DataFrame used for filtering bad samples.
+            Default is None.
+        sample_start_date (str, optional): A start date for the sample DataFrame used for filtering bad samples.
+            Default is None.
 
     Returns:
         pandas.DataFrame: The OOD DataFrame, containing daily counts and score predictions.
@@ -454,7 +457,7 @@ def create_data_ood_dataframe(daily_counts, vae_jsonl_file, score_jsonl_file, la
 
     Raises:
         FileNotFoundError: If either the VAE JSONL file or the score JSONL file does not exist.
-        ValueError: If the label_cols list is empty or the weight parameter is less than 0 or greater than or equal to 1.
+        ValueError: If the label_cols list is empty or the weight parameter is less than 0 or greater than or equal to 1
     """
     vae_df = load_vae_preds(vae_jsonl_file)
     scores_df = load_score_preds(label_cols, score_jsonl_file)
@@ -483,8 +486,8 @@ def load_raw_drift_dataframe(vae_pred_file, scores_pred_file, metadata_file, lab
             scores_pred_file (str): Path to the scores predictions file (jsonl format).
             metadata_file (str): Path to the metadata file (CSV format by default).
             label_cols (list of str): List of column names for the label columns in the scores predictions file.
-            metadata_loader (callable, optional): Function to load the metadata file. If not provided, a default function
-                                                  will be used which reads the file using pandas.read_csv.
+            metadata_loader (callable, optional): Function to load the metadata file.
+            If not provided, a default function will be used which reads the file using pandas.read_csv.
 
         Returns:
             pandas.DataFrame: Merged DataFrame containing raw drift data from VAE predictions, score predictions, and

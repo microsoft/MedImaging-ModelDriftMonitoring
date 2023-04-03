@@ -15,7 +15,6 @@ from model_drift.helpers import ProgressParallel as Parallel
 from model_drift.io.serialize import ModelDriftEncoder
 
 
-
 def fix_strlst(series, clean=True):
     def convert_literal_list(val):
         val = str(val)
@@ -95,9 +94,9 @@ def remap_labels(labels, label_map=None, verbose=False):
 
 def split_on_date(df, splits, col=None):
     splits = pd.to_datetime(splits).sort_values()
-    
+
     rem = df
-    
+
     for split in splits:
         if col is None:
             curr, rem = rem[rem.index < split], rem[rem.index >= split]
@@ -181,10 +180,12 @@ def merge_nested(d1, d2, suffices=("left", "right")):
             d1[k] = left
 
     for k, right in d2.items():
-        if k in d1: continue
+        if k in d1:
+            continue
         d1[k] = right
 
     return d1
+
 
 def rolling_window_dt_apply(dataframe, func, drilldown_func=None, window='30D', stride='D', min_periods=1, n_jobs=1,
                             verbose=0, backend='loky', refresh_rate=None, output_dir="./history/", **kwargs):

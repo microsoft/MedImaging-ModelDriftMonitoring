@@ -3,21 +3,20 @@
 #  Licensed under the MIT License (MIT). See LICENSE in the repo root for license information.
 #  ------------------------------------------------------------------------------------------
 import pandas as pd
-from abc import abstractclassmethod, abstractmethod
 
 from model_drift.data.utils import nested2series
 from model_drift.io.serialize import SerializableBase
 
 
 class BaseDriftCalculator(SerializableBase):
-    
+
     def __init__(self):
         self._is_prepared = False
 
     def prepare(self, ref):
         self._ref = self.convert(ref)
         self._is_prepared = True
-        
+
     def _predict(self, sample):
         raise NotImplementedError()
 

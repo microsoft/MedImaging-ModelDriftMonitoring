@@ -61,7 +61,7 @@ def classification_report(scores, labels, target_names=None, th=0.5, ):
         try:
             output[k]['auroc'] = metrics.roc_auc_score(
                 labels[:, i], scores[:, i])
-        except:
+        except: # noqa
             return
 
     output['macro avg']['auroc'] = (metrics.roc_auc_score(
@@ -118,7 +118,4 @@ class ClassificationReportCalculator(BaseDriftCalculator):
         labels = np.stack(labels.values)
         scores = np.stack(scores.values)
 
-        try:
-            return classification_report(scores, labels, target_names=self.target_names, th=self.th)
-        except:
-            raise
+        return classification_report(scores, labels, target_names=self.target_names, th=self.th)

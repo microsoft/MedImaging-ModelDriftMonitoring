@@ -29,7 +29,7 @@ class TabularDriftCalculator(BaseDriftCalculator):
 
     # TODO: Handle NaNs and Non-numerics
     def __init__(self):
-        
+
         self.metrics = {}
         self._metric_collections = {}
         self._hist_collections = {}
@@ -171,7 +171,7 @@ class TabularDriftCalculator(BaseDriftCalculator):
         output_dir = Path(output_dir)
 
         with open(output_dir.joinpath("drift_config.yml"), "w") as f:
-            print(yaml.dump(self, Dumper=get_dumper()))
+            print(yaml.dump(self, Dumper=get_dumper()), file=f)
 
         with open(output_dir.joinpath("groups.json"), "w") as f:
             print(json.dumps(self.groups), file=f)
@@ -191,4 +191,4 @@ class TabularDriftCalculator(BaseDriftCalculator):
                                                                    stratify=stratify, agg=agg),
                                        drilldown_func=lambda window: self.drilldown(window),
                                        output_dir=str(history_path),
-                                                  **kwargs)
+                                       **kwargs)

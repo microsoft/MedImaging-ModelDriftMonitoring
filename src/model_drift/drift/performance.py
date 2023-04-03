@@ -2,25 +2,29 @@
 #  Copyright (c) Microsoft Corporation. All rights reserved.
 #  Licensed under the MIT License (MIT). See LICENSE in the repo root for license information.
 #  ------------------------------------------------------------------------------------------
+import json
+
 import numpy as np
 import pandas as pd
+import six
 import torch
 from sklearn import metrics
 from torchmetrics.functional import auroc
 
 from model_drift.drift.base import BaseDriftCalculator
-import json
-import six
+
 
 def toarray(value):
     def _toarray(s):
         if isinstance(s, six.string_types):
             if "," not in s:
                 s = ",".join(s.split())
-            return np.array(json.loads(s))   
+            return np.array(json.loads(s))
         else:
             return np.array(s)
+
     return _toarray(value)
+
 
 def macro_auc(scores, labels, skip_missing=True):
     if len(scores) == 0:
@@ -76,12 +80,11 @@ class AUROCCalculator(BaseDriftCalculator):
         self.average = average
         self.ignore_nan = ignore_nan
 
-
     def convert(self, arg):
         if not isinstance(arg, pd.DataFrame):
             raise NotImplementedError("only Dataframes supported")
         return arg.applymap(toarray)
-        
+
     def _predict(self, sample):
         labels = sample.iloc[:, 1] if self.label_col is None else sample[self.label_col]
         scores = sample.iloc[:, 0] if self.score_col is None else sample[self.score_col]
@@ -102,7 +105,7 @@ class ClassificationReportCalculator(BaseDriftCalculator):
         self.score_col = score_col
         self.target_names = target_names
         self.th = th
-        
+
     def convert(self, arg):
         if not isinstance(arg, pd.DataFrame):
             raise NotImplementedError("only Dataframes supported")

@@ -4,7 +4,7 @@
 #  ------------------------------------------------------------------------------------------
 from .base import BaseDriftCalculator  # noqa
 from .categorical import ChiSqDriftCalculator  # noqa
-from .histogram import KdeIntersectionCalculator, HistIntersectionCalculator, NumericalHistIntersectionCalculator, KdeHistPlotCalculator# noqa
+from .histogram import HistIntersectionCalculator, KdeHistPlotCalculator # noqa
 from .collection import DriftCollectionCalculator
 from .numeric import KSDriftCalculator, BasicDriftCalculator  # noqa
 from .performance import AUROCCalculator, ClassificationReportCalculator  # noqa

@@ -57,14 +57,18 @@ def mutual_info_performance(perf_dataframe, other_dataframe, bins=10, **kwargs):
     return pd.Series(info_gain, index=X.columns.tolist(), name="info_gain")
 
 
-def w_avg(df, weights):
+def apply_weights(df, weights):
     cols = weights.index.intersection(df.columns)
     weights = np.array([weights[c] for c in cols])
     weights = weights / weights.sum()
     tmp = df[cols].copy()
     for c, w in zip(cols, weights):
         tmp[c] = tmp[c] * w
-    return tmp.sum(axis=1, skipna=False)
+    return tmp
+
+
+def w_avg(df, weights):
+    return apply_weights(df, weights).sum(axis=1, skipna=False)
 
 
 def calculate_mmc(metrics_df, weights, std_stats, clip=10):

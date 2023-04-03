@@ -1,5 +1,10 @@
+#  ------------------------------------------------------------------------------------------
+#  Copyright (c) Microsoft Corporation. All rights reserved.
+#  Licensed under the MIT License (MIT). See LICENSE in the repo root for license information.
+#  ------------------------------------------------------------------------------------------
 import json
-from abc import ABCMeta, abstractmethod, abstractclassmethod
+from abc import ABCMeta
+
 import numpy as np
 import yaml
 
@@ -18,8 +23,8 @@ class SerializableMeta(ABCMeta):
     @classmethod
     def get_registry(cls):
         return dict(cls.REGISTRY)
-    
-    
+
+
 def get_dumper():
     safe_dumper = yaml.SafeDumper
     for cls in SerializableMeta.get_registry().values():
@@ -27,14 +32,14 @@ def get_dumper():
         safe_dumper.add_representer(cls, representer)
     return safe_dumper
 
+
 def get_loader():
     loader = yaml.SafeLoader
 
     for cls in SerializableMeta.get_registry().values():
-        constructor = lambda loader, node : cls.deserialize(loader.construct_mapping(node))
+        constructor = lambda loader, node: cls.deserialize(loader.construct_mapping(node))
         loader.add_constructor(cls.yaml_tag, constructor)
     return loader
-        
 
 
 class SerializableBase(metaclass=SerializableMeta):

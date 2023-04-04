@@ -2,12 +2,28 @@
 #  Copyright (c) Microsoft Corporation. All rights reserved.
 #  Licensed under the MIT License (MIT). See LICENSE in the repo root for license information.
 #  ------------------------------------------------------------------------------------------
+import json
+
 import numpy as np
+import pandas as pd
+import six
 import torch
 from sklearn import metrics
 from torchmetrics.functional import auroc
 
-from .base import BaseDriftCalculator
+from model_drift.drift.base import BaseDriftCalculator
+
+
+def toarray(value):
+    def _toarray(s):
+        if isinstance(s, six.string_types):
+            if "," not in s:
+                s = ",".join(s.split())
+            return np.array(json.loads(s))
+        else:
+            return np.array(s)
+
+    return _toarray(value)
 
 
 def macro_auc(scores, labels, skip_missing=True):
@@ -42,8 +58,11 @@ def classification_report(scores, labels, target_names=None, th=0.5, ):
     for i, k in enumerate(target_names):
         if keeps[i] == 0:
             continue
-        output[k]['auroc'] = metrics.roc_auc_score(
-            labels[:, i], scores[:, i])
+        try:
+            output[k]['auroc'] = metrics.roc_auc_score(
+                labels[:, i], scores[:, i])
+        except: # noqa
+            return
 
     output['macro avg']['auroc'] = (metrics.roc_auc_score(
         labels[:, keeps], scores[:, keeps], labels=target_names[keeps], average='macro'))
@@ -55,11 +74,16 @@ def classification_report(scores, labels, target_names=None, th=0.5, ):
 class AUROCCalculator(BaseDriftCalculator):
     name = "auroc"
 
-    def __init__(self, ref=None, label_col=None, score_col=None, average='micro', ignore_nan=True):
-        super().__init__(None)
+    def __init__(self, label_col=None, score_col=None, average='micro', ignore_nan=True):
         self.label_col = label_col
         self.score_col = score_col
         self.average = average
+        self.ignore_nan = ignore_nan
+
+    def convert(self, arg):
+        if not isinstance(arg, pd.DataFrame):
+            raise NotImplementedError("only Dataframes supported")
+        return arg.applymap(toarray)
 
     def _predict(self, sample):
         labels = sample.iloc[:, 1] if self.label_col is None else sample[self.label_col]
@@ -75,13 +99,17 @@ class AUROCCalculator(BaseDriftCalculator):
 class ClassificationReportCalculator(BaseDriftCalculator):
     name = "class_report"
 
-    def __init__(self, ref=None, label_col=None, score_col=None, target_names=None, th=0.5):
-        super().__init__(None)
-
+    def __init__(self, label_col=None, score_col=None, target_names=None, th=0.5):
+        super().__init__()
         self.label_col = label_col
         self.score_col = score_col
         self.target_names = target_names
         self.th = th
+
+    def convert(self, arg):
+        if not isinstance(arg, pd.DataFrame):
+            raise NotImplementedError("only Dataframes supported")
+        return arg.applymap(toarray)
 
     def _predict(self, sample):
         labels = sample.iloc[:, 1] if self.label_col is None else sample[self.label_col]

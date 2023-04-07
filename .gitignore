@@ -149,6 +149,10 @@ sandbox/
 # Data Directory
 data/*
 !data/README.md
+raw/
+
+#demo directory
+demo/*
 
 # Results Directory
 results/*
@@ -165,3 +169,5 @@ results/*
 
 experiments/experiment1_input_analysis/image_based_drift/experiment/*
 !experiments/experiment1_input_analysis/image_based_drift/experiment/*.py
+
+outputs/*

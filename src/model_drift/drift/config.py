@@ -119,3 +119,76 @@ def padchest_default_config(dataframe, vae_cols=r"mu\..*", score_cols=r"activati
         elif col in metadata_cols:
             add_metadata_metrics(dwc, col)
     return dwc
+
+
+def mgb_default_config(dataframe, vae_cols=r"mu\..*", score_cols=r"activation\..*"):
+
+    if isinstance(vae_cols, six.string_types):
+        vae_cols = [vae_cols]
+
+    if isinstance(score_cols, six.string_types):
+        score_cols = [score_cols]
+
+    metadata_float_cols = [
+        "WindowCenter",
+        "WindowWidth",
+        "RelativeXRayExposure",
+        "Rows",
+        "Columns",
+        "XRayTubeCurrent",
+        "Exposure",
+        "ExposureInuAs",
+        "KVP",
+    ]
+
+    metadata_cat_cols = [
+        "ViewPosition",
+        "Manufacturer",
+        "PhotometricInterpretation",
+        "BitsStored",
+        "Modality",
+        "PixelRepresentation",
+        "PixelAspectRatio",
+        "SpatialResolution",
+        "Point of Care",
+        "Patient Sex",
+        "Is Stat",
+        "Exam Code",
+    ]
+
+    metadata_age_cols = ["Patient Age"]
+
+    def add_vae_metrics(dwc: TabularDriftCalculator, col: str):
+        dwc.add_drift_stat(col, KSDriftCalculator(), drilldown=False, group="appearance")
+        dwc.add_drift_stat(col, KdeHistPlotCalculator(npoints=500), drilldown=True, group="appearance")
+
+    def add_score_metrics(dwc: TabularDriftCalculator, col: str):
+        dwc.add_drift_stat(col, KSDriftCalculator(), drilldown=False, group="ai")
+        dwc.add_drift_stat(col, KdeHistPlotCalculator(npoints=500), drilldown=True, group="ai")
+
+    def add_metadata_metrics(dwc: TabularDriftCalculator, col: str):
+        if col in metadata_age_cols:
+            dwc.add_drift_stat(col, KSDriftCalculator(), drilldown=False, group="metadata")
+            dwc.add_drift_stat(col, KdeHistPlotCalculator(npoints=500, hist_tol=0, kde_tol=0), drilldown=True,
+                               group="metadata")
+        elif col in metadata_float_cols:
+            dwc.add_drift_stat(col, KSDriftCalculator(), drilldown=False, group="metadata")
+            dwc.add_drift_stat(col, KdeHistPlotCalculator(npoints=500), drilldown=True, group="metadata")
+        elif col in metadata_cat_cols:
+            dwc.add_drift_stat(col, ChiSqDriftCalculator(), drilldown=False, group="metadata")
+            dwc.add_drift_stat(col, HistIntersectionCalculator(), drilldown=True, group="metadata")
+
+    score_cols = match_keys(list(dataframe), score_cols)
+    vae_cols = match_keys(list(dataframe), vae_cols)
+    metadata_cols = metadata_age_cols + metadata_cat_cols + metadata_float_cols
+
+    dwc = TabularDriftCalculator()
+    for col in dataframe.columns:
+        if col in score_cols:
+            add_score_metrics(dwc, col)
+        elif col in vae_cols:
+            add_vae_metrics(dwc, col)
+        elif col in metadata_cols:
+            add_metadata_metrics(dwc, col)
+
+    return dwc

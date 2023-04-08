@@ -14,11 +14,9 @@ if library_path not in PYPATH:
 from model_drift.data.dataset import MGBCXRDataset
 from model_drift.data.utils import split_on_date
 from model_drift.data import mgb_data
+from model_drift.drift.config import mgb_default_config
 from model_drift.drift.sampler import Sampler
 from model_drift.drift.performance import ClassificationReportCalculator
-from model_drift.drift.categorical import ChiSqDriftCalculator
-from model_drift.drift.numeric import KSDriftCalculator, BasicDriftCalculator
-from model_drift.drift.tabular import TabularDriftCalculator
 from model_drift import settings, helpers, mgb_locations
 from pycrumbs import tracked
 import warnings
@@ -124,62 +122,27 @@ def main(output_dir: Path, args: argparse.Namespace) -> None:
 
     merged_df = scores_df.merge(vae_df, on="index", how="left")
     merged_df = merged_df.merge(meta_df, on="index", how="left")
-    train_df, val_df, test_df = split_on_date(merged_df, [mgb_data.TRAIN_DATE_END, mgb_data.VAL_DATE_END])
-
-    calculators = {
-        "FLOAT": [KSDriftCalculator],
-        "CAT": [ChiSqDriftCalculator],
-        "DBG": [BasicDriftCalculator],
-    }
-
-    cols = {}
-    if args.include_metadata:
-        cols.update({
-            "ViewPosition": "CAT",
-            "Manufacturer": "CAT",
-            "PhotometricInterpretation": "CAT",
-            "BitsStored": "CAT",
-            "Rows": "FLOAT",
-            "Columns": "FLOAT",
-            "XRayTubeCurrent": "FLOAT",
-            "Exposure": "FLOAT",
-            "ExposureInuAs": "FLOAT",
-            "KVP": "FLOAT",
-            "Modality": "CAT",
-            "PixelRepresentation": "CAT",
-            "PixelAspectRatio": "CAT",
-            "SpatialResolution": "CAT",
-            "WindowCenter": "FLOAT",
-            "WindowWidth": "FLOAT",
-            "RelativeXRayExposure": "FLOAT",
-            "Point of Care": "CAT",
-            "Patient Sex": "CAT",
-            "Patient Age": "FLOAT",
-            "Is Stat": "CAT",
-            "Exam Code": "CAT",
-        })
-
-    cols.update({c: "FLOAT" for c in list(merged_df) if c.startswith("mu.") and 'all' not in c})
-    cols.update({c: "FLOAT" for c in list(merged_df) if c.startswith("activation.") and 'all' not in c})
+    train_df, val_df, test_df = split_on_date(
+        merged_df,
+        [mgb_data.TRAIN_DATE_END, mgb_data.VAL_DATE_END],
+        col="StudyDate",
+    )
 
     sampler = Sampler(args.sample_size, replacement=args.replacement)
 
     ref_df = val_df.copy().assign(in_distro=True)
-    dwc = TabularDriftCalculator(ref_df)
-
-    for c, TYPE in cols.items():
-        for kls in calculators[TYPE]:
-            dwc.add_drift_stat(c, kls)
+    dwc = mgb_default_config(ref_df)
 
     dwc.add_drift_stat(
         'performance',
-        ClassificationReportCalculator,
+        ClassificationReportCalculator(
+            target_names=tuple(mgb_data.LABEL_GROUPINGS)
+        ),
         col=("score", "label"),
-        target_names=tuple(MGBCXRDataset.LABEL_COLUMNS),
         include_stat_name=False
     )
 
-    dwc.prepare()
+    dwc.prepare(ref_df)
 
     target_df = merged_df.set_index('StudyDate')
 
@@ -216,8 +179,6 @@ if __name__ == '__main__':
     parser.add_argument("--stride", type=str)
     parser.add_argument("--min_periods", type=int, default=150)
     parser.add_argument("--ref_frontal_only", type=int, default=1)
-
-    parser.add_argument("--include_metadata", type=int, default=True)
 
     parser.add_argument("--lateral_add_date", type=str, default=None)
     parser.add_argument("--indist_remove_date", type=str, default=None)

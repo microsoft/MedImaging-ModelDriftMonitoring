@@ -23,17 +23,17 @@ RAW_LABELS = [
 
 LABEL_GROUPINGS = {
     'Atelectasis': ['Atelectasis'],
-    # 'Cardiomegaly': ['Cardiomegaly'],
+    'Cardiomegaly': ['Cardiomegaly'],
     'Consolidation': ['Consolidation', 'Pneumonia'],
     'Edema': ['Edema'],
     'Lung Lesion': ['Lung Lesion'],
-    # 'No Finding': ['No Finding'],
+    'No Finding': ['No Finding'],
     'Lung Opacity': ['Lung Opacity', 'Pneumonia', 'Consolidation', 'Lung Lesion', 'Atelectasis', 'Edmea'],
-    # 'Pleural Other': ['Pleural Other', 'Pleural Effusion', 'Pneumothorax'],
+    'Pleural Other': ['Pleural Other', 'Pleural Effusion', 'Pneumothorax'],
     'Pleural Effusion': ['Pleural Effusion'],
     'Pneumonia': ['Pneumonia'],
-    'Pneumothorax': ['Pneumothorax'],
+    # 'Pneumothorax': ['Pneumothorax'],
     # 'Support Devices': ['Support Devices'],
-    # 'Enlarged Cardiomediastinum': ['Enlarged Cardiomediastinum'],
-    'Fracture': ['Fracture'],
+    # 'Enlarged Cardiomediastinum': ['Enlarged Cardiomediastinum', 'Cardiomegaly'],
+    # 'Fracture': ['Fracture'],
 }

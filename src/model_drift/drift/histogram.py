@@ -145,6 +145,8 @@ class KdeHistPlotCalculator(BaseDriftCalculator):
     def prepare(self, ref):
         ref = self.convert(ref)
         self._ref_res = self._histogram(ref)
+        print(type(ref))
+        print(ref)
         self._ref_kde = gaussian_kde(ref.dropna(), bw_method=self.bw_method)
         super().prepare(ref)
 

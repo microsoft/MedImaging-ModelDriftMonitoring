@@ -130,8 +130,8 @@ def mgb_default_config(dataframe, vae_cols=r"mu\..*", score_cols=r"activation\..
         score_cols = [score_cols]
 
     metadata_float_cols = [
-        "WindowCenter",
-        "WindowWidth",
+        # "WindowCenter",
+        # "WindowWidth",
         "RelativeXRayExposure",
         "Rows",
         "Columns",
@@ -149,7 +149,7 @@ def mgb_default_config(dataframe, vae_cols=r"mu\..*", score_cols=r"activation\..
         "Modality",
         "PixelRepresentation",
         "PixelAspectRatio",
-        "SpatialResolution",
+        # "SpatialResolution",
         "Point of Care",
         "Patient Sex",
         "Is Stat",

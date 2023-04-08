@@ -14,11 +14,11 @@ if library_path not in PYPATH:
 from model_drift.data.dataset import MGBCXRDataset
 from model_drift.data.utils import split_on_date
 from model_drift.data import mgb_data
-from model_drift.drift.metrics.sampler import Sampler
-from model_drift.drift.metrics.performance import ClassificationReportCalculator
-from model_drift.drift.metrics import ChiSqDriftCalculator
-from model_drift.drift.metrics.numeric import KSDriftCalculator, BasicDriftCalculator
-from model_drift.drift.metrics import TabularDriftCalculator
+from model_drift.drift.sampler import Sampler
+from model_drift.drift.performance import ClassificationReportCalculator
+from model_drift.drift.categorical import ChiSqDriftCalculator
+from model_drift.drift.numeric import KSDriftCalculator, BasicDriftCalculator
+from model_drift.drift.tabular import TabularDriftCalculator
 from model_drift import settings, helpers, mgb_locations
 from pycrumbs import tracked
 import warnings

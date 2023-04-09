@@ -152,10 +152,15 @@ def main(output_dir: Path, args: argparse.Namespace) -> None:
     print("starting drift experiment!")
     output = dwc.rolling_window_predict(
         target_df,
-        sampler=sampler, n_samples=args.n_samples,
-        stride=args.stride, window=args.window, min_periods=args.min_periods,
-        n_jobs=args.num_workers, backend="threading",
+        sampler=sampler,
+        n_samples=args.n_samples,
+        stride=args.stride,
+        window=args.window,
+        min_periods=args.min_periods,
+        n_jobs=args.num_workers,
+        backend="threading",
         refresh_rate=.01,
+        output_dir=output_dir,
     )
     output.to_csv(fname)
 
